@@ -22,4 +22,4 @@ build/
 .vscode/
 .idea/
 
-document-extractor-frontend/
+# document-extractor-frontend/
