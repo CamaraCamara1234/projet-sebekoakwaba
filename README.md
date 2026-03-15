@@ -33,6 +33,7 @@ sudo apt update && sudo apt install -y \
     libxrender1 \
     libxext6 \
     libgl1-mesa-glx
+```
 
 Ces paquets permettent de compiler des extensions C++ et d’utiliser OpenCV, Tesseract et les librairies de deep learning.
 
@@ -86,4 +87,4 @@ project
 ├── requirements.txt   # Dépendances Python
 ├── Dockerfile
 └── README.md
-```
+
