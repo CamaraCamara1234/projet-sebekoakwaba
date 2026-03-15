@@ -1,0 +1,33 @@
+django>=4.2
+djangorestframework
+django-cors-headers
+
+# Core
+numpy
+Pillow
+scikit-learn
+
+# Vision
+opencv-python-headless
+
+# Deep learning
+torch
+torchvision
+
+# OCR
+easyocr
+paddlepaddle==2.6.2
+paddleocr
+pytesseract
+passporteye
+
+# Face recognition
+insightface
+onnxruntime
+
+# Detection
+ultralytics
+
+# Utils
+albumentations
+tqdm

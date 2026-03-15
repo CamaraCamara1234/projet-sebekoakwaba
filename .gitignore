@@ -1,0 +1,25 @@
+# Python / Django
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+db.sqlite3
+.env
+venv/
+
+# Django uploads
+media/
+staticfiles/
+
+# React / Node
+node_modules/
+build/
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+document-extractor-frontend/

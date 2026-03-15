@@ -1,0 +1,49 @@
+/* Additional theme-specific styles */
+.icon-upload::before {
+    content: "↑";
+    font-size: 2.5rem;
+    display: block;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .preview-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .file-previews {
+      grid-template-columns: 1fr;
+    }
+    
+    .mrz-cards {
+      grid-template-columns: 1fr;
+    }
+    
+    .results-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .processing-time {
+      margin-top: 10px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .upload-container {
+      padding: 20px;
+    }
+    
+    .drop-zone {
+      padding: 20px;
+    }
+    
+    .actions {
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .primary-button, .secondary-button {
+      width: 100%;
+    }
+  }
