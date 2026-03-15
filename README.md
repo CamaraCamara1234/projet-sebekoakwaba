@@ -51,19 +51,29 @@ Windows : ``venv\Scripts\activate``
 Linux / Mac : ``source venv/bin/activate``
 
 Installer les dépendances Python
-``
+```bash
 pip install --upgrade pip
+```
+```bash
 pip install -r requirements.txt
+```
 Lancer le serveur Django
+```bash
 python backend_api/manage.py runserver
-``
+```
 
-Backend accessible sur : ``http://127.0.0.1:8000``
+
+Backend accessible sur : 
+```bash
+http://127.0.0.1:8000
+```
 
 3. Lancer le Frontend (React)
-cd frontend
+```bash
+cd document-extractor-frontend
 npm install
 npm start
+```
 
 Frontend accessible sur : http://localhost:3000
 
@@ -71,11 +81,15 @@ Frontend accessible sur : http://localhost:3000
 
 Construire l’image :
 
+```bash
 docker build -t ocr-api .
+```
 
 Lancer le container :
 
+```bash
 docker run -p 8000:8000 ocr-api
+```
 
 Avec Docker, toutes les dépendances système (Tesseract, compilateurs, OpenCV…) sont incluses dans l’image.
 
