@@ -94,6 +94,7 @@ docker run -p 8000:8000 ocr-api
 Avec Docker, toutes les dépendances système (Tesseract, compilateurs, OpenCV…) sont incluses dans l’image.
 
 5. Structure du projet
+```bash
 project
 │
 ├── backend_api        # API Django
@@ -101,4 +102,4 @@ project
 ├── requirements.txt   # Dépendances Python
 ├── Dockerfile
 └── README.md
-
+```
