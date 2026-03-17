@@ -1,5 +1,5 @@
 // services/api.js
-const API_BASE = 'http://localhost:8000';
+const API_BASE = 'https://jonna-unstrung-sickeningly.ngrok-free.dev';
 
 // Clé pour le localStorage
 const SESSION_ID_KEY = 'secureid_session_id';
@@ -57,11 +57,11 @@ export const getImageUrl = (path) => {
 
   // Si le chemin contient déjà un session_id ou si on a pas de session, on le garde tel quel
   if (path.includes(sessionId) || !sessionId) {
-    return `http://localhost:8000${path}`;
+    return `https://jonna-unstrung-sickeningly.ngrok-free.dev${path}`;
   }
 
   // Sinon on ajoute le paramètre de cache-busting
-  return `http://localhost:8000${path}?t=${Date.now()}`;
+  return `https://jonna-unstrung-sickeningly.ngrok-free.dev${path}?t=${Date.now()}`;
 };
 
 // Extraction simple (recto seul)
