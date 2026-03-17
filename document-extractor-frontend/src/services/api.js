@@ -60,23 +60,23 @@ export const getImageUrl = (path) => {
   let imageUrl = `${baseUrl}${path}`;
 
   // Ajouter les paramètres
-  const params = new URLSearchParams();
+  const params = [];
 
-  // Ajouter le session_id si disponible
   if (sessionId) {
-    params.append('session_id', sessionId);
+    params.push(`session_id=${sessionId}`);
   }
 
-  // Toujours ajouter un timestamp pour éviter le cache
-  params.append('t', Date.now());
+  // Ajout du paramètre pour ignorer l'avertissement ngrok
+  params.push(`ngrok-skip-browser-warning=1`);
 
-  // Convertir les paramètres en string et les ajouter à l'URL
-  const queryString = params.toString();
-  if (queryString) {
-    imageUrl = `${imageUrl}?${queryString}`;
+  // Ajouter un timestamp pour éviter le cache
+  params.push(`t=${Date.now()}`);
+
+  if (params.length > 0) {
+    imageUrl = `${imageUrl}?${params.join('&')}`;
   }
 
-  console.log('URL générée:', imageUrl); // Pour debug
+  console.log('URL générée:', imageUrl);
   return imageUrl;
 };
 
