@@ -5,7 +5,7 @@ import FaceVerification from './components/FaceVerification';
 import {
   extractSingleDocument,
   extractDualDocuments,
-  cleanDirectories,
+  // cleanDirectories,
   clearSessionId,
   getImageUrl
 } from './services/api';
