@@ -40,12 +40,15 @@ const UnifiedRegistrationForm = ({ onSubmit, initialData, isUploading }) => {
   };
 
   const handleFileChange = (e) => {
-    const newFiles = Array.from(e.target.files);
-    if (newFiles.length > 0) {
-      setFiles(newFiles.slice(0, 2)); // Maximum 2 fichiers (recto/verso)
-      setErrors(prev => ({ ...prev, document: null }));
-    }
-  };
+  const newFiles = Array.from(e.target.files);
+  if (newFiles.length > 0) {
+    setFiles(prevFiles => {
+      const combinedFiles = [...prevFiles, ...newFiles];
+      return combinedFiles.slice(0, 2);
+    });
+    setErrors(prev => ({ ...prev, document: null }));
+  }
+};
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -123,7 +126,8 @@ const UnifiedRegistrationForm = ({ onSubmit, initialData, isUploading }) => {
       <div className="form-header">
         <h2>Inscription</h2>
         <p className="form-subtitle">
-          Veuillez uploader votre pièce d'identité et compléter les informations manquantes
+          Veuillez uploader votre pièce d'identité et compléter les informations manquantes.<br/>
+          CNI (recto et verso), Titre séjour (recto et verso) ou le passeport
         </p>
       </div>
 
