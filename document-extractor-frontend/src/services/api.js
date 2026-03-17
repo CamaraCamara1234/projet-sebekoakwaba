@@ -54,14 +54,30 @@ export const getImageUrl = (path) => {
   if (path.startsWith('http')) return path;
 
   const sessionId = getSessionId();
+  const baseUrl = 'https://jonna-unstrung-sickeningly.ngrok-free.dev';
 
-  // Si le chemin contient déjà un session_id ou si on a pas de session, on le garde tel quel
-  if (path.includes(sessionId) || !sessionId) {
-    return `https://jonna-unstrung-sickeningly.ngrok-free.dev${path}`;
+  // Construire l'URL de base
+  let imageUrl = `${baseUrl}${path}`;
+
+  // Ajouter les paramètres
+  const params = new URLSearchParams();
+
+  // Ajouter le session_id si disponible
+  if (sessionId) {
+    params.append('session_id', sessionId);
   }
 
-  // Sinon on ajoute le paramètre de cache-busting
-  return `https://jonna-unstrung-sickeningly.ngrok-free.dev${path}?t=${Date.now()}`;
+  // Toujours ajouter un timestamp pour éviter le cache
+  params.append('t', Date.now());
+
+  // Convertir les paramètres en string et les ajouter à l'URL
+  const queryString = params.toString();
+  if (queryString) {
+    imageUrl = `${imageUrl}?${queryString}`;
+  }
+
+  console.log('URL générée:', imageUrl); // Pour debug
+  return imageUrl;
 };
 
 // Extraction simple (recto seul)
