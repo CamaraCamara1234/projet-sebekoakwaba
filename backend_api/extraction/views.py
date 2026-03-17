@@ -10,6 +10,7 @@ import re
 import time
 import uuid
 import shutil
+import json
 # from .services.utils import *
 from passporteye import read_mrz
 
@@ -270,22 +271,27 @@ def extract_regions_front_view(request):
         if os.path.exists(session_temp_dir):
             shutil.rmtree(session_temp_dir)
 
+
 ################################## Validation des informations ################################
-
-
 @csrf_exempt
 def data_validation(request):
     if request.method != 'POST':
         return JsonResponse({'message': 'Méthode non autorisée'}, status=405)
 
-    import json
+    # Récupérer les champs depuis form-data
+    data_str = request.POST.get('data', '{}')
+    data_mrz_str = request.POST.get('data_mrz', '{}')
 
-    data = json.loads(request.POST.get('data', '{}'))
-    data_mrz = json.loads(request.POST.get('data_mrz', '{}'))
+    try:
+        data = json.loads(data_str)
+        data_mrz = json.loads(data_mrz_str)
+    except json.JSONDecodeError:
+        return JsonResponse({'message': 'Données JSON invalides'}, status=400)
 
     if not data or not data_mrz:
         return JsonResponse({'message': 'Données manquantes'}, status=400)
 
+    # Ici tu appelles ta fonction de validation
     data_verified = data_validation_function(data, data_mrz)
 
     return JsonResponse({'data_verified': data_verified})
@@ -682,8 +688,6 @@ def process_ocr_for_files(file_list, session_id=None):
 
 
 ###################################### Validation des informations ###########################
-
-
 def normalize_text(text):
     if not text:
         return ""
@@ -695,6 +699,7 @@ def normalize_text(text):
 def data_validation_function(data, data_mrz):
     """
     Validation des données OCR avec les informations MRZ
+    Les champs supplémentaires non présents dans MRZ sont ajoutés et marqués comme verified=True
     """
 
     data_verified = {}
@@ -722,7 +727,6 @@ def data_validation_function(data, data_mrz):
     prenom_ocr = normalize_text(data.get("prenom", "")).replace(" ", "")
 
     if not fullname_mrz:
-
         data_verified["nom"] = {
             "value": nom_ocr,
             "source": "ocr",
@@ -738,7 +742,6 @@ def data_validation_function(data, data_mrz):
         }
 
     else:
-
         # Vérification du nom
         if nom_ocr and nom_ocr in fullname_mrz:
 
@@ -762,7 +765,6 @@ def data_validation_function(data, data_mrz):
                 }
 
             else:
-
                 data_verified["prenom"] = {
                     "value": prenom_ocr,
                     "ocr_value": prenom_ocr,
@@ -773,7 +775,6 @@ def data_validation_function(data, data_mrz):
                 }
 
         else:
-
             data_verified["nom"] = {
                 "value": nom_ocr,
                 "ocr_value": nom_ocr,
@@ -793,7 +794,7 @@ def data_validation_function(data, data_mrz):
             }
 
     # -------------------------
-    # Validation des autres champs
+    # Validation des autres champs MRZ
     # -------------------------
 
     date_fields = ["date_naissance", "date_expiration"]
@@ -851,6 +852,17 @@ def data_validation_function(data, data_mrz):
                         "verified": False,
                         "message": f"Les {field} ne correspondent pas"
                     }
+
+    # -------------------------
+    # Ajout des champs supplémentaires qui ne sont pas dans MRZ
+    # -------------------------
+    for key, value in data.items():
+        if key not in data_verified:
+            data_verified[key] = {
+                "value": value,
+                "source": "ocr",
+                "verified": True
+            }
 
     return data_verified
 ########################################### traitement MRZ ####################################

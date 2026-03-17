@@ -32,5 +32,5 @@ urlpatterns = [
          name='face_verification_api'),
     path('advenced_face_verification/', csrf_exempt(verify_face_endpoint),
          name='advenced_face_verification_api'),
-    path('clear-directories/', csrf_exempt(clear_media_dirs), name='clear_media_dirs')
+    path('clear_session_files/', csrf_exempt(clear_media_dirs), name='clear_media_dirs')
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

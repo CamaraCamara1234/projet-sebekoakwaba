@@ -1,84 +1,45 @@
-# ==================================================
-# 1️⃣ Image de base
-# ==================================================
-FROM python:3.10-slim-bullseye
+FROM ubuntu:22.04
 
-# ==================================================
-# 2️⃣ Variables environnement
-# ==================================================
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV PIP_NO_CACHE_DIR=1
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+ENV DEBIAN_FRONTEND=noninteractive
 
-# ==================================================
-# 3️⃣ Dépendances système
-# ==================================================
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Installation des dépendances système
+RUN apt-get update && apt-get install -y \
+    python3.10 \
+    python3-pip \
+    python3-dev \
     build-essential \
-    g++ \
     cmake \
+    git \
+    wget \
+    curl \
     tesseract-ocr \
     tesseract-ocr-fra \
-    libgl1 \
+    tesseract-ocr-eng \
+    libgl1-mesa-glx \
     libglib2.0-0 \
-    libgomp1 \
     libsm6 \
     libxext6 \
     libxrender1 \
-    curl \
-    wget \
-    git \
+    libgomp1 \
+    libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# ==================================================
-# 4️⃣ Dossier de travail
-# ==================================================
 WORKDIR /app
 
-# ==================================================
-# 5️⃣ Copier requirements
-# ==================================================
+# Installation des packages Python
 COPY requirements.txt .
+RUN pip3 install --upgrade pip
+RUN pip3 install numpy
+RUN pip3 install paddlepaddle==2.6.2
+RUN pip3 install paddleocr==2.10.0
+RUN pip3 install -r requirements.txt
 
-# ==================================================
-# 6️⃣ Installer dépendances Python
-# ==================================================
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
-
-# ==================================================
-# 7️⃣ Télécharger modèles OCR (important)
-# ==================================================
-RUN python - <<EOF
-from paddleocr import PaddleOCR
-from easyocr import Reader
-
-print("Downloading PaddleOCR models...")
-PaddleOCR(lang="fr", use_gpu=False)
-
-print("Downloading EasyOCR models...")
-Reader(['fr'], gpu=False)
-
-print("Models ready")
-EOF
-
-# ==================================================
-# 8️⃣ Copier le code
-# ==================================================
 COPY . .
 
-# ==================================================
-# 9️⃣ Créer dossiers runtime
-# ==================================================
-RUN mkdir -p /app/data && chmod -R 777 /app/data
-RUN mkdir -p /app/media && chmod -R 777 /app/media
+RUN mkdir -p /app/data /app/media && chmod -R 777 /app/data /app/media
 
-# ==================================================
-# 🔟 Port Django
-# ==================================================
 EXPOSE 8000
 
-# ==================================================
-# 11️⃣ Lancer le serveur
-# ==================================================
-CMD ["python", "backend_api/manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["python3", "backend_api/manage.py", "runserver", "0.0.0.0:8000"]
