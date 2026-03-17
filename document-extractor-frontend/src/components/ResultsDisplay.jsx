@@ -17,12 +17,35 @@ const ResultsDisplay = ({
   // Vérifier si c'est un objet reviewData (avec statut) ou extractionResults
   const isReviewData = data.statut_verification !== undefined;
 
+  // Déterminer le message à afficher selon le statut
+  const getStatusMessage = () => {
+    if (!isReviewData) return null;
+    
+    if (data.statut_verification === 'valide') {
+      return {
+        title: "Félicitations !",
+        message: "Votre inscription a été validée avec succès",
+        icon: "🎉",
+        className: "success-message"
+      };
+    } else {
+      return {
+        title: "Vérification en attente",
+        message: "Votre visage ne semble pas correspondre, nous vous contacterons pour confirmer votre identité",
+        icon: "⏳",
+        className: "pending-message"
+      };
+    }
+  };
+
+  const statusMessage = getStatusMessage();
+
   // Convertir reviewData en format compatible avec DataTable si nécessaire
   const getExtractedData = () => {
     if (isReviewData) {
       // Convertir l'objet reviewData en tableau pour DataTable
       return Object.entries(data)
-        .filter(([key]) => !key.startsWith('photo_') && !key.includes('_url') && !key.includes('date_verification'))
+        .filter(([key]) => !key.startsWith('photo_') && !key.includes('_url') && !key.includes('date_verification') && key !== 'statut_verification')
         .map(([key, value]) => ({
           label: key,
           text: value,
@@ -57,13 +80,24 @@ const ResultsDisplay = ({
         )}
       </div>
 
+      {/* Message de statut personnalisé */}
+      {statusMessage && (
+        <div className={`status-message ${statusMessage.className}`}>
+          <div className="status-icon">{statusMessage.icon}</div>
+          <div className="status-content">
+            <h3>{statusMessage.title}</h3>
+            <p>{statusMessage.message}</p>
+          </div>
+        </div>
+      )}
+
       {isReviewData ? (
         // Affichage spécifique pour reviewData
         <div className="review-data-display">
           <h3>Données validées</h3>
           <div className="data-grid">
             {Object.entries(data)
-              .filter(([key]) => !key.startsWith('photo_') && !key.includes('_url') && key !== 'date_verification')
+              .filter(([key]) => !key.startsWith('photo_') && !key.includes('_url') && key !== 'date_verification' && key !== 'statut_verification')
               .map(([key, value]) => (
                 <div key={key} className="data-item">
                   <span className="data-label">{key}:</span>
@@ -177,6 +211,64 @@ const ResultsDisplay = ({
           color: #e65100;
         }
 
+        /* Message de statut */
+        .status-message {
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
+          padding: 2rem;
+          margin-bottom: 2rem;
+          border-radius: 12px;
+          animation: slideIn 0.5s ease;
+        }
+
+        .status-message.success-message {
+          background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+          border: 2px solid #4CAF50;
+        }
+
+        .status-message.pending-message {
+          background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+          border: 2px solid #FF9800;
+        }
+
+        .status-icon {
+          font-size: 3rem;
+          min-width: 80px;
+          text-align: center;
+        }
+
+        .status-content {
+          flex: 1;
+        }
+
+        .status-content h3 {
+          margin: 0 0 0.5rem;
+          font-size: 1.5rem;
+        }
+
+        .success-message .status-content h3 {
+          color: #2e7d32;
+        }
+
+        .pending-message .status-content h3 {
+          color: #e65100;
+        }
+
+        .status-content p {
+          margin: 0;
+          font-size: 1.1rem;
+          line-height: 1.5;
+        }
+
+        .success-message .status-content p {
+          color: #1b5e20;
+        }
+
+        .pending-message .status-content p {
+          color: #bf360c;
+        }
+
         .review-data-display {
           margin-top: 1rem;
         }
@@ -281,10 +373,32 @@ const ResultsDisplay = ({
           color: #c62828;
         }
 
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
         @media (max-width: 768px) {
           .results-header {
             flex-direction: column;
             text-align: center;
+          }
+
+          .status-message {
+            flex-direction: column;
+            text-align: center;
+            gap: 1rem;
+          }
+
+          .status-icon {
+            font-size: 2.5rem;
+            min-width: auto;
           }
 
           .data-grid {
