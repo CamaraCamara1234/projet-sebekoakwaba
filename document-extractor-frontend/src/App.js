@@ -249,16 +249,16 @@ function App() {
       case 4:
         return (
           <div className="step-container step-4">
-            <div className="success-animation">
+            {/* <div className="success-animation">
               <div className="checkmark-circle">
                 <div className="checkmark"></div>
               </div>
-            </div>
+            </div> */}
 
-            <div className="success-message">
+            {/* <div className="success-message">
               <h2>Félicitations !</h2>
               <p>Votre inscription a été validée avec succès</p>
-            </div>
+            </div> */}
 
             {/* Afficher ResultsDisplay avec les données de reviewData */}
             <ResultsDisplay
