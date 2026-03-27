@@ -1,45 +1,41 @@
-FROM ubuntu:22.04
+FROM python:3.10-slim
 
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    DEBIAN_FRONTEND=noninteractive
 
-# Installation des dépendances système
-RUN apt-get update && apt-get install -y \
-    python3.10 \
-    python3-pip \
-    python3-dev \
-    build-essential \
-    cmake \
-    git \
-    wget \
-    curl \
+# Dépendances système minimales
+RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr \
     tesseract-ocr-fra \
     tesseract-ocr-eng \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
+    libgomp1 \
     libsm6 \
     libxext6 \
     libxrender1 \
-    libgomp1 \
     libssl-dev \
+    build-essential \
+    python3-dev \
+    cmake \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Installation des packages Python
+# Installer les dépendances Python (optimisé)
 COPY requirements.txt .
-RUN pip3 install --upgrade pip
-RUN pip3 install numpy
-RUN pip3 install paddlepaddle==2.6.2
-RUN pip3 install paddleocr==2.10.0
-RUN pip3 install -r requirements.txt
 
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir setuptools wheel cython && \
+    pip install --no-cache-dir numpy paddlepaddle==2.6.2 paddleocr==2.10.0 && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copier le code après (meilleur cache Docker)
 COPY . .
 
-RUN mkdir -p /app/data /app/media && chmod -R 777 /app/data /app/media
+RUN mkdir -p /app/data /app/media
 
 EXPOSE 8000
 
-CMD ["python3", "backend_api/manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["python", "backend_api/manage.py", "runserver", "0.0.0.0:8000"]

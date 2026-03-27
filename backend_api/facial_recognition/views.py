@@ -11,6 +11,24 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from .services.verify_faces_service import verify_faces_service
+import base64
+
+
+def image_to_base64(image_path):
+    """Convertit une image en chaîne base64 avec préfixe MIME"""
+    try:
+        if not image_path or not os.path.exists(image_path):
+            return None
+        
+        ext = os.path.splitext(image_path)[1].lower().replace('.', '')
+        if ext == 'jpg': ext = 'jpeg'
+        
+        with open(image_path, "rb") as img_file:
+            b64_string = base64.b64encode(img_file.read()).decode('utf-8')
+            return f"data:image/{ext};base64,{b64_string}"
+    except Exception as e:
+        logger.error(f"Erreur conversion base64: {e}")
+        return None
 
 
 logger = logging.getLogger(__name__)
@@ -70,17 +88,18 @@ def verify_faces(request):
         result = verify_faces_service(img1_path, img2_path)
 
         # Préparer la réponse
-        distance = result['distance']
+        distance = result.distance
         verified = distance <= DLIB_THRESHOLD
         similarity_percent = calculate_similarity(distance)
 
         return JsonResponse({
             'verified': verified,
-            'distance': float(result['distance']),
+            'distance': float(result.distance),
             'threshold': DLIB_THRESHOLD,
             'confidence': similarity_percent,
             'model': 'ArcFace',
-            'uploaded_image': settings.MEDIA_URL + "extracted_regions/photo_capture.png"
+            'uploaded_image': settings.MEDIA_URL + "extracted_regions/photo_capture.png",
+            'photo_capture_base64': image_to_base64(img2_path)
         })
 
     except Exception as e:
@@ -152,7 +171,9 @@ def verify_face_endpoint(request):
             "similarity": result.similarity,
             "verified": result.verified,
             "threshold": result.threshold,
-            "message": result.message
+            "distance": result.distance,
+            "message": result.message,
+            "photo_capture_base64": image_to_base64(img2_path)
         })
 
     except Exception as e:

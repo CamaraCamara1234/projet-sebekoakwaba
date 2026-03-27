@@ -76,7 +76,7 @@ export const getImageUrl = (path) => {
     imageUrl = `${imageUrl}?${params.join('&')}`;
   }
 
-  console.log('URL générée:', imageUrl);
+  // console.log('URL générée:', imageUrl);
   return imageUrl;
 };
 

@@ -2,17 +2,17 @@
 import React, { useState, useEffect } from 'react';
 import { getImageUrl, validationData, getSessionId } from '../services/api';
 
-const ReviewData = ({ 
-  extractedData, 
-  formData, 
-  onConfirm, 
+const ReviewData = ({
+  extractedData,
+  formData,
+  onConfirm,
   onEdit,
-  isProcessing 
+  isProcessing
 }) => {
   const [editedData, setEditedData] = useState(() => {
     // Initialiser avec les données extraites
     const initialData = {};
-    
+
     if (extractedData?.extracted_data) {
       extractedData.extracted_data.forEach(item => {
         // Ignorer les champs qui se terminent par _ar (arabe)
@@ -22,7 +22,7 @@ const ReviewData = ({
         }
       });
     }
-    
+
     // Ajouter les données du formulaire, mais NE PAS ÉCRASER les données extraites
     // avec des chaînes vides
     if (formData) {
@@ -33,16 +33,16 @@ const ReviewData = ({
         }
       });
     }
-    
+
     return initialData;
   });
 
   // Log pour déboguer
-  useEffect(() => {
-    console.log("📦 Données extraites reçues:", extractedData);
-    console.log("📝 Données du formulaire:", formData);
-    console.log("✏️ Données éditées initialisées:", editedData);
-  }, []);
+  // useEffect(() => {
+  //   console.log("📦 Données extraites reçues:", extractedData);
+  //   console.log("📝 Données du formulaire:", formData);
+  //   console.log("✏️ Données éditées initialisées:", editedData);
+  // }, []);
 
   const [editMode, setEditMode] = useState({});
   const [validationResult, setValidationResult] = useState(null);
@@ -69,75 +69,75 @@ const ReviewData = ({
 
   const handleConfirmWithValidation = async () => {
     setIsValidating(true);
-    
+
     try {
       // Préparer les données pour la validation
       const formDataToSend = new FormData();
-      
+
       // Ajouter le session_id
       const sessionId = getSessionId();
       if (sessionId) {
         formDataToSend.append('session_id', sessionId);
       }
-      
+
       // Ajouter les données OCR corrigées
       formDataToSend.append('data', JSON.stringify(editedData));
-      
+
       // Ajouter les données MRZ si disponibles
       if (extractedData?.mrz_data && extractedData.mrz_data.length > 0) {
         formDataToSend.append('data_mrz', JSON.stringify(extractedData.mrz_data[0]));
       } else {
         formDataToSend.append('data_mrz', JSON.stringify({}));
       }
-      
+
       console.log("📤 Envoi pour validation:", {
         data: editedData,
         mrz: extractedData?.mrz_data?.[0]
       });
-      
+
       // Envoyer pour validation
       const result = await validationData(formDataToSend);
       console.log("📥 Résultat validation:", result);
-      
+
       setValidationResult(result);
-      
+
       // Vérifier si toutes les données sont validées
-      const allVerified = result.data_verified && 
+      const allVerified = result.data_verified &&
         Object.values(result.data_verified).every(v => v.verified);
-      
+
       if (allVerified) {
         // Si tout est validé, créer les données finales
         const validatedData = { ...editedData };
-        
+
         // Mettre à jour avec les valeurs validées
         Object.entries(result.data_verified).forEach(([key, value]) => {
           if (value.value) {
             validatedData[key] = value.value;
           }
         });
-        
+
         // Appeler onConfirm avec les données validées et le résultat
         onConfirm(validatedData, result);
       } else {
         // Si certaines données ne sont pas validées, montrer les corrections
         setShowCorrections(true);
-        
+
         // Mettre à jour editedData avec les valeurs MRZ quand c'est pertinent
         const updatedData = { ...editedData };
         let hasChanges = false;
-        
+
         Object.entries(result.data_verified || {}).forEach(([key, value]) => {
           if (!value.verified && value.mrz_value && value.mrz_value !== updatedData[key]) {
             updatedData[key] = value.mrz_value;
             hasChanges = true;
           }
         });
-        
+
         if (hasChanges) {
           setEditedData(updatedData);
         }
       }
-      
+
     } catch (error) {
       console.error("❌ Erreur lors de la validation:", error);
       // En cas d'erreur, on passe quand même avec les données éditées
@@ -175,22 +175,22 @@ const ReviewData = ({
   };
 
   // Vérifier si tous les champs sont validés
-  const allFieldsVerified = validationResult?.data_verified && 
+  const allFieldsVerified = validationResult?.data_verified &&
     Object.values(validationResult.data_verified).every(v => v.verified);
 
   // Compter les champs validés
-  const verifiedCount = validationResult?.data_verified 
+  const verifiedCount = validationResult?.data_verified
     ? Object.values(validationResult.data_verified).filter(v => v.verified).length
     : 0;
-  
-  const totalCount = validationResult?.data_verified 
+
+  const totalCount = validationResult?.data_verified
     ? Object.keys(validationResult.data_verified).length
     : 0;
 
   // Mapping des champs du document pour l'affichage (basé sur ce qui est effectivement extrait)
   const getDocumentFields = () => {
     const fields = [];
-    
+
     if (extractedItems.length > 0) {
       extractedItems.forEach(item => {
         // Mapping des labels vers des libellés lisibles
@@ -215,7 +215,7 @@ const ReviewData = ({
           'taille': 'Taille',
           'nini': 'Numéro NINI'
         };
-        
+
         fields.push({
           key: item.label,
           label: labelMapping[item.label] || item.label,
@@ -223,7 +223,7 @@ const ReviewData = ({
         });
       });
     }
-    
+
     return fields;
   };
 
@@ -276,23 +276,23 @@ const ReviewData = ({
             <span className="section-icon">📄</span>
             Informations extraites du document
           </h3>
-          
+
           <div className="review-cards">
             {documentFields.map(field => {
               const extractedValue = getExtractedValue(field.key);
               const confidence = field.confidence * 100;
               const currentValue = editedData[field.key] || extractedValue || '';
               const validationStatus = getValidationStatus(field.key);
-              
+
               // Déterminer la classe CSS en fonction de la validation
               let cardClass = 'review-card';
               if (validationStatus) {
                 cardClass += validationStatus.verified ? ' verified' : ' warning';
               }
-              
+
               return (
-                <div 
-                  key={field.key} 
+                <div
+                  key={field.key}
                   className={cardClass}
                 >
                   <div className="card-header">
@@ -304,7 +304,7 @@ const ReviewData = ({
                       </span>
                     )}
                   </div>
-                  
+
                   <div className="card-content">
                     {editMode[field.key] ? (
                       <div className="edit-mode">
@@ -355,9 +355,9 @@ const ReviewData = ({
 
                   <div className="card-footer">
                     <div className="confidence-bar">
-                      <div 
+                      <div
                         className="confidence-fill"
-                        style={{ 
+                        style={{
                           width: `${confidence}%`,
                           backgroundColor: getConfidenceColor(confidence)
                         }}
@@ -379,18 +379,18 @@ const ReviewData = ({
             <span className="section-icon">✏️</span>
             Informations saisies
           </h3>
-          
+
           <div className="review-cards">
             {userFields.map(field => {
               const currentValue = editedData[field.key] || '';
-              
+
               return (
                 <div key={field.key} className="review-card user-card">
                   <div className="card-header">
                     <span className="field-label">{field.label}</span>
                     <span className="field-source user">Saisie</span>
                   </div>
-                  
+
                   <div className="card-content">
                     {editMode[field.key] ? (
                       <div className="edit-mode">
@@ -464,9 +464,9 @@ const ReviewData = ({
           {extractedData?.photo && extractedData.photo !== 'N/A' && (
             <div className="image-card">
               <h4>Photo d'identité</h4>
-              <img 
-                src={getImageUrl(extractedData.photo)} 
-                alt="Photo" 
+              <img
+                src={extractedData.photo}
+                alt="Photo"
                 onError={(e) => {
                   e.target.src = 'https://via.placeholder.com/150?text=Photo';
                 }}
@@ -476,8 +476,8 @@ const ReviewData = ({
           {extractedData?.photo_portrait && extractedData.photo_portrait !== 'N/A' && (
             <div className="image-card">
               <h4>Portrait</h4>
-              <img 
-                src={getImageUrl(extractedData.photo_portrait)} 
+              <img
+                src={extractedData.photo_portrait}
                 alt="Portrait"
                 onError={(e) => {
                   e.target.src = 'https://via.placeholder.com/150?text=Portrait';
@@ -488,8 +488,8 @@ const ReviewData = ({
           {extractedData?.cin_recto && extractedData.cin_recto !== 'N/A' && (
             <div className="image-card">
               <h4>Recto</h4>
-              <img 
-                src={getImageUrl(extractedData.cin_recto)} 
+              <img
+                src={extractedData.cin_recto}
                 alt="Recto"
                 onError={(e) => {
                   e.target.src = 'https://via.placeholder.com/150?text=Recto';
@@ -500,8 +500,8 @@ const ReviewData = ({
           {extractedData?.cin_verso && extractedData.cin_verso !== 'N/A' && (
             <div className="image-card">
               <h4>Verso</h4>
-              <img 
-                src={getImageUrl(extractedData.cin_verso)} 
+              <img
+                src={extractedData.cin_verso}
                 alt="Verso"
                 onError={(e) => {
                   e.target.src = 'https://via.placeholder.com/150?text=Verso';
@@ -509,11 +509,23 @@ const ReviewData = ({
               />
             </div>
           )}
+          {extractedData?.passeport && extractedData.passeport !== 'N/A' && (
+            <div className="image-card">
+              <h4>Passeport</h4>
+              <img
+                src={extractedData.passeport}
+                alt="passeport"
+                onError={(e) => {
+                  e.target.src = 'https://via.placeholder.com/150?text=passeport';
+                }}
+              />
+            </div>
+          )}
           {extractedData?.mrz_image && extractedData.mrz_image !== 'N/A' && (
             <div className="image-card">
               <h4>Zone MRZ</h4>
-              <img 
-                src={getImageUrl(extractedData.mrz_image)} 
+              <img
+                src={extractedData.mrz_image}
                 alt="MRZ"
                 onError={(e) => {
                   e.target.src = 'https://via.placeholder.com/150?text=MRZ';
@@ -533,7 +545,7 @@ const ReviewData = ({
         >
           ← Modifier le formulaire
         </button>
-        
+
         {validationResult && !allFieldsVerified ? (
           // Si validation effectuée mais pas tout validé
           <div className="button-group">

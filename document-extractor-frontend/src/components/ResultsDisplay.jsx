@@ -45,7 +45,7 @@ const ResultsDisplay = ({
     if (isReviewData) {
       // Convertir l'objet reviewData en tableau pour DataTable
       return Object.entries(data)
-        .filter(([key]) => !key.startsWith('photo_') && !key.includes('_url') && !key.includes('date_verification') && key !== 'statut_verification')
+        .filter(([key]) => !key.startsWith('photo_') && !key.includes('_url') && !key.includes('date_verification') && key !== 'statut_verification' && key !== 'images_base64')
         .map(([key, value]) => ({
           label: key,
           text: value,
@@ -97,7 +97,7 @@ const ResultsDisplay = ({
           <h3>Données validées</h3>
           <div className="data-grid">
             {Object.entries(data)
-              .filter(([key]) => !key.startsWith('photo_') && !key.includes('_url') && key !== 'date_verification' && key !== 'statut_verification')
+              .filter(([key]) => !key.startsWith('photo_') && !key.includes('_url') && key !== 'date_verification' && key !== 'statut_verification' && key !== 'images_base64')
               .map(([key, value]) => (
                 <div key={key} className="data-item">
                   <span className="data-label">{key}:</span>

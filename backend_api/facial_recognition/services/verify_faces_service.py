@@ -31,6 +31,7 @@ face_app.prepare(
 @dataclass
 class FaceVerificationResult:
     similarity: float
+    distance: float
     verified: bool
     threshold: float
     message: str
@@ -84,12 +85,14 @@ def verify_faces_service(image1_path: str, image2_path: str, threshold: float = 
 
             return FaceVerificationResult(
                 similarity=0.0,
+                distance=1.0,
                 verified=False,
                 threshold=threshold,
                 message="Aucun visage détecté"
             )
 
         similarity = cosine_similarity(emb1, emb2)
+        distance = 1.0 - similarity
 
         verified = similarity >= threshold
 
@@ -97,6 +100,7 @@ def verify_faces_service(image1_path: str, image2_path: str, threshold: float = 
 
         return FaceVerificationResult(
             similarity=similarity,
+            distance=distance,
             verified=verified,
             threshold=threshold,
             message=message
@@ -108,6 +112,7 @@ def verify_faces_service(image1_path: str, image2_path: str, threshold: float = 
 
         return FaceVerificationResult(
             similarity=0.0,
+            distance=1.0,
             verified=False,
             threshold=threshold,
             message="Erreur lors de la vérification"

@@ -105,13 +105,17 @@ function App() {
     // Créer l'objet complet avec les données existantes + nouveaux champs
     const updatedReviewData = {
       ...reviewData,
-      session_id: localStorage.getItem('session_id'),
+      session_id: result.session_id || extractionResults?.session_id || localStorage.getItem('secureid_session_id'),
       statut_verification: result.status || (result.verified ? 'valide' : 'en_cours'),
-      photo_reference_url: extractionResults?.photo ? getImageUrl(extractionResults.photo) : null,
-      photo_capture_url: result.captured_photo || null,
+      photo_reference_url: extractionResults?.images_base64?.photo || (extractionResults?.photo ? getImageUrl(extractionResults.photo) : null),
+      photo_capture_url: result.photo_capture_base64 || result.captured_photo || null,
       date_verification: new Date().toISOString(),
-      score_confiance: result.confidence || 0,
-      distance_faciale: result.distance || 0
+      score_confiance: result.confidence || result.similarity || 0,
+      distance_faciale: result.distance || 0,
+      images_base64: {
+        ...(extractionResults?.images_base64 || {}),
+        photo_capture: result.photo_capture_base64 || null
+      }
     };
 
     console.log('✅ Données mises à jour avec statut:', updatedReviewData);

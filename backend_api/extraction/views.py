@@ -13,6 +13,24 @@ import shutil
 import json
 # from .services.utils import *
 from passporteye import read_mrz
+import base64
+
+
+def image_to_base64(image_path):
+    """Convertit une image en chaîne base64 avec préfixe MIME"""
+    try:
+        if not image_path or not os.path.exists(image_path):
+            return "N/A"
+        
+        ext = os.path.splitext(image_path)[1].lower().replace('.', '')
+        if ext == 'jpg': ext = 'jpeg'
+        
+        with open(image_path, "rb") as img_file:
+            b64_string = base64.b64encode(img_file.read()).decode('utf-8')
+            return f"data:image/{ext};base64,{b64_string}"
+    except Exception as e:
+        logger.error(f"Erreur conversion base64: {e}")
+        return "N/A"
 
 logger = logging.getLogger(__name__)
 
@@ -388,12 +406,15 @@ def handle_ocr_processing(list_files, session_id):
         # Chercher les fichiers spécifiques à la session
         recto_class = None
         verso_class = None
+        passeport_class = None
 
         for f in list_files:
             if 'recto' in f:
                 recto_class = f
             elif 'verso' in f:
                 verso_class = f
+            elif 'passeport' in f:
+                passeport_class = f
 
         # Vérifier la présence des fichiers photo et code dans list_regions_name
         photo_exists = 'photo' in list_regions_name
@@ -403,14 +424,21 @@ def handle_ocr_processing(list_files, session_id):
         response_data = {
             "status": "success",
             "session_id": session_id,
-            "photo": f"{base_url}extracted_regions/{session_id}/photo.png" if photo_exists else "N/A",
-            "mrz_image": f"{base_url}extracted_regions/{session_id}/code.png" if code_exists else "N/A",
-            "cin_recto": f"{base_url}preprocessed_imgs/{session_id}_{recto_class}.jpg" if recto_class else "N/A",
-            "cin_verso": f"{base_url}preprocessed_imgs/{session_id}_{verso_class}.jpg" if verso_class else "N/A",
+            "photo": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'extracted_regions', session_id, 'photo.png')) if photo_exists else "N/A",
+            "mrz_image": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'extracted_regions', session_id, 'code.png')) if code_exists else "N/A",
+            "cin_recto": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{recto_class}.jpg")) if recto_class else "N/A",
+            "cin_verso": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{verso_class}.jpg")) if verso_class else "N/A",
+            "passeport": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'extracted_regions', session_id, 'passeport.jpg')) if passeport_class else "N/A",
             "extracted_data": list(best_results.values()),
             "mrz_data": mrz_data,
             "temps": round(t2 - t1, 2),
-            "document_type": doc_type
+            "document_type": doc_type,
+            "images_base64": {
+                "photo": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'extracted_regions', session_id, 'photo.png')) if photo_exists else "N/A",
+                "mrz": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'extracted_regions', session_id, 'code.png')) if code_exists else "N/A",
+                "cin_recto": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{recto_class}.jpg")) if recto_class else "N/A",
+                "cin_verso": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{verso_class}.jpg")) if verso_class else "N/A"
+            }
         }
 
         logger.info(
