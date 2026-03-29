@@ -1,5 +1,5 @@
 // services/api.js
-const API_BASE = 'https://jonna-unstrung-sickeningly.ngrok-free.dev';
+const API_BASE = 'http://213.156.132.116:8000';
 
 // Clé pour le localStorage
 const SESSION_ID_KEY = 'secureid_session_id';
@@ -54,7 +54,7 @@ export const getImageUrl = (path) => {
   if (path.startsWith('http')) return path;
 
   const sessionId = getSessionId();
-  const baseUrl = 'https://jonna-unstrung-sickeningly.ngrok-free.dev';
+  const baseUrl = 'http://213.156.132.116:8000';
 
   // Construire l'URL de base
   let imageUrl = `${baseUrl}${path}`;
@@ -223,7 +223,7 @@ export const cleanDirectories = async () => {
   try {
     console.log('Nettoyage des dossiers...');
 
-    const response = await fetch(`${API_BASE}/clear-directories/`, {
+    const response = await fetch(`${API_BASE}/clear_session_files/`, {
       method: 'POST',
       body: formData
     });

@@ -87,7 +87,7 @@ const formatLabel = (label) => {
     code: "Code MRZ",
     sexe: "Sexe",
     adresse: "Adresse",
-    adresse_ar: "Adresse (arabe)",
+    nini: "Numero d'identification nationale",
     motif_sejour: "Motif de séjour",
     motif_sejour_ar: "Motif de séjour (arabe)",
     pere: "pere",

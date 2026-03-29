@@ -22,7 +22,7 @@ const FaceVerification = ({
   const fileInputRef = useRef(null);
 
   // Utiliser getImageUrl pour la photo de référence
-  const photoUrl = getImageUrl(referencePhoto);
+  const photoUrl = referencePhoto;
 
   const videoConstraints = {
     width: 1280,

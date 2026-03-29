@@ -1,0 +1,30 @@
+# Docker ignore file
+.git
+.gitignore
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.db.sqlite3
+.env
+.venv
+env/
+venv/
+
+# Local data/media (should be handled via volumes)
+backend_api/media/*
+backend_api/db.sqlite3
+data/*
+
+# Frontend (Separate project, skip for backend image)
+document-extractor-frontend/
+
+# Local IDE folders
+.vscode/
+.idea/
+
+# Large binaries/models that should be downloaded or mounted
+*.onnx
+*.weights
+*.pt
+*.pth

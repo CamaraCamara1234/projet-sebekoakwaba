@@ -5,7 +5,7 @@ import FaceVerification from './components/FaceVerification';
 import {
   extractSingleDocument,
   extractDualDocuments,
-  // cleanDirectories,
+  cleanDirectories,
   clearSessionId,
   getImageUrl
 } from './services/api';
@@ -163,6 +163,7 @@ function App() {
 
     // Effacer le session_id du localStorage
     clearSessionId();
+    cleanDirectories();
     console.log('Session réinitialisée');
   };
 
@@ -815,7 +816,7 @@ function App() {
             margin: 0 0.75rem;
           }
         }
-      `}</style> 
+      `}</style>
     </div>
   );
 }

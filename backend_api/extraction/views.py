@@ -428,7 +428,7 @@ def handle_ocr_processing(list_files, session_id):
             "mrz_image": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'extracted_regions', session_id, 'code.png')) if code_exists else "N/A",
             "cin_recto": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{recto_class}.jpg")) if recto_class else "N/A",
             "cin_verso": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{verso_class}.jpg")) if verso_class else "N/A",
-            "passeport": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'extracted_regions', session_id, 'passeport.jpg')) if passeport_class else "N/A",
+            "passeport": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{passeport_class}.jpg")) if passeport_class else "N/A",
             "extracted_data": list(best_results.values()),
             "mrz_data": mrz_data,
             "temps": round(t2 - t1, 2),
