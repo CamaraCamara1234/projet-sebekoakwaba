@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import UnifiedRegistrationForm from './components/UnifiedRegistrationForm';
+import RegistrationForm from './components/RegistrationForm';
 import ReviewData from './components/ReviewData';
 import FaceVerification from './components/FaceVerification';
 import {
@@ -7,12 +7,13 @@ import {
   extractDualDocuments,
   cleanDirectories,
   clearSessionId,
+  updateUserStatus,
 } from './services/api';
 import './assets/styles/main.css';
 import ResultsDisplay from './components/ResultsDisplay';
 
 function App() {
-  // États
+  // États (inchangés)
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState(null);
   const [uploadedFiles, setUploadedFiles] = useState(null);
@@ -31,7 +32,7 @@ function App() {
     const params = new URLSearchParams(window.location.search);
     const data = {};
     const keys = ['id', 'nom', 'prenom', 'email', 'username', 'ville', 'adresse', 'telephone'];
-    
+
     let hasData = false;
     keys.forEach(key => {
       const value = params.get(key);
@@ -57,7 +58,6 @@ function App() {
     setIsProcessing(true);
 
     try {
-      // Lancer l'extraction OCR
       const formDataObj = new FormData();
 
       if (files.length === 1) {
@@ -75,7 +75,6 @@ function App() {
         setExtractionKey(prev => prev + 1);
       }
 
-      // Passer à l'étape 2 (revue des données)
       setCurrentStep(2);
 
     } catch (err) {
@@ -94,21 +93,17 @@ function App() {
     setReviewData(confirmedData);
     setValidationResult(validationResults);
 
-    // Vérifier si toutes les données sont validées
     if (validationResults?.data_verified) {
       const allVerified = Object.values(validationResults.data_verified).every(v => v.verified);
       console.log('Toutes les données sont-elles validées?', allVerified);
 
       if (allVerified) {
-        // Si tout est validé, passer à l'étape suivante
         setCurrentStep(3);
         setError(null);
       } else {
-        // Sinon, rester à l'étape 2 avec un message
         setError('Certaines données doivent être corrigées manuellement avant de continuer');
       }
     } else {
-      // Si pas de validation (ancien comportement), on bloque aussi
       setError('Veuillez valider les données avant de continuer');
     }
   };
@@ -123,7 +118,6 @@ function App() {
   const handleFaceVerificationComplete = (result) => {
     console.log('Vérification faciale:', result);
 
-    // Créer l'objet complet avec les données existantes + nouveaux champs
     const updatedReviewData = {
       ...reviewData,
       session_id: result.session_id || extractionResults?.session_id || localStorage.getItem('secureid_session_id'),
@@ -155,9 +149,20 @@ function App() {
 
   // Étape 4 : Finalisation
   const handleFinalizeRegistration = () => {
+    if (!externalData || !externalData.id) {
+      setError("ID utilisateur manquant (données externes non chargées)");
+      return;
+    }
+
+    const finalData = {
+      ...reviewData,
+      user_id: externalData.id
+    };
+
+    console.log('✅ Données finales:', finalData);
+    updateUserStatus(finalData);
     setIsProcessing(true);
 
-    // Simuler l'envoi au serveur
     setTimeout(() => {
       setRegistrationComplete(true);
       setIsProcessing(false);
@@ -182,7 +187,6 @@ function App() {
     setRegistrationComplete(false);
     setExtractionKey(prev => prev + 1);
 
-    // Effacer le session_id du localStorage
     clearSessionId();
     cleanDirectories();
     console.log('Session réinitialisée');
@@ -200,7 +204,7 @@ function App() {
       case 1:
         return (
           <div className="step-container">
-            <UnifiedRegistrationForm
+            <RegistrationForm
               onSubmit={handleFormSubmit}
               initialData={reviewData || formData}
               isUploading={isProcessing}
@@ -212,10 +216,6 @@ function App() {
         return (
           <div className="step-container">
             <div className="step-header">
-              <h2>Étape 2 : Vérification des données</h2>
-              <p className="step-description">
-                Vérifiez les informations extraites de votre document et modifiez si nécessaire
-              </p>
               <button
                 className="nav-link"
                 onClick={() => setCurrentStep(1)}
@@ -238,7 +238,7 @@ function App() {
         return (
           <div className="step-container">
             <div className="step-header">
-              <h2>Étape 3 : Vérification faciale</h2>
+              <h2>Vérification faciale</h2>
               <p className="step-description">
                 Prenez une photo en temps réel pour confirmer votre identité
               </p>
@@ -276,18 +276,6 @@ function App() {
       case 4:
         return (
           <div className="step-container step-4">
-            {/* <div className="success-animation">
-              <div className="checkmark-circle">
-                <div className="checkmark"></div>
-              </div>
-            </div> */}
-
-            {/* <div className="success-message">
-              <h2>Félicitations !</h2>
-              <p>Votre inscription a été validée avec succès</p>
-            </div> */}
-
-            {/* Afficher ResultsDisplay avec les données de reviewData */}
             <ResultsDisplay
               data={reviewData}
               processingTime={extractionResults?.temps}
@@ -333,59 +321,56 @@ function App() {
     <div className="app">
       <header className="app-header">
         <div className="container">
-          <h1>SecureID Verification</h1>
-          <p className="header-subtitle">
-            Inscription sécurisée avec vérification d'identité
-          </p>
+          <div className="header-content">
+            <div className="logo-section">
+              <div className="logo-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <div>
+                <h1>Akwaba-checkid</h1>
+                <p className="header-subtitle">Vérification d'identité sécurisée</p>
+              </div>
+            </div>
+          </div>
         </div>
       </header>
 
-      {/* Barre de progression */}
+      {/* Barre de progression améliorée */}
       <div className="progress-container">
         <div className="container">
           <div className="progress-steps">
-            <div
-              className={`step ${currentStep >= 1 ? 'active' : ''} ${currentStep > 1 ? 'completed' : ''}`}
-              onClick={() => goToStep(1)}
-            >
-              <div className="step-indicator">
-                <span className="step-number">1</span>
-                {currentStep > 1 && <span className="step-check">✓</span>}
-              </div>
-              <span className="step-label">Formulaire</span>
-            </div>
-            <div className="step-connector"></div>
-            <div
-              className={`step ${currentStep >= 2 ? 'active' : ''} ${currentStep > 2 ? 'completed' : ''}`}
-              onClick={() => extractionResults && goToStep(2)}
-            >
-              <div className="step-indicator">
-                <span className="step-number">2</span>
-                {currentStep > 2 && <span className="step-check">✓</span>}
-              </div>
-              <span className="step-label">Revue</span>
-            </div>
-            <div className="step-connector"></div>
-            <div
-              className={`step ${currentStep >= 3 ? 'active' : ''} ${currentStep > 3 ? 'completed' : ''}`}
-              onClick={() => reviewData && validationResult?.allVerified && goToStep(3)}
-            >
-              <div className="step-indicator">
-                <span className="step-number">3</span>
-                {currentStep > 3 && <span className="step-check">✓</span>}
-              </div>
-              <span className="step-label">Visage</span>
-            </div>
-            <div className="step-connector"></div>
-            <div
-              className={`step ${currentStep >= 4 ? 'active' : ''}`}
-              onClick={() => faceVerificationResult && goToStep(4)}
-            >
-              <div className="step-indicator">
-                <span className="step-number">4</span>
-              </div>
-              <span className="step-label">Finalisation</span>
-            </div>
+            {[
+              { number: 1, label: 'Formulaire', icon: '📝' },
+              { number: 2, label: 'Revue', icon: '✓' },
+              { number: 3, label: 'Visage', icon: '👤' },
+              { number: 4, label: 'Finalisation', icon: '🎉' }
+            ].map((step, index) => (
+              <React.Fragment key={step.number}>
+                <div
+                  className={`step ${currentStep >= step.number ? 'active' : ''} ${currentStep > step.number ? 'completed' : ''}`}
+                  onClick={() => {
+                    if (step.number === 1) goToStep(1);
+                    if (step.number === 2 && extractionResults) goToStep(2);
+                    if (step.number === 3 && reviewData && validationResult?.allVerified) goToStep(3);
+                    if (step.number === 4 && faceVerificationResult) goToStep(4);
+                  }}
+                >
+                  <div className="step-indicator">
+                    {currentStep > step.number ? (
+                      <span className="step-check">✓</span>
+                    ) : (
+                      <span className="step-icon">{step.icon}</span>
+                    )}
+                  </div>
+                  <span className="step-label">{step.label}</span>
+                </div>
+                {index < 3 && <div className="step-connector"></div>}
+              </React.Fragment>
+            ))}
           </div>
         </div>
       </div>
@@ -409,58 +394,105 @@ function App() {
       <footer className="app-footer">
         <div className="container">
           <div className="footer-content">
-            <p>© {new Date().getFullYear()} SecureID Verification. Tous droits réservés.</p>
+            <p>© {new Date().getFullYear()} SecureID. Tous droits réservés.</p>
             <div className="footer-links">
               <a href="/privacy">Confidentialité</a>
-              <a href="/terms">Sebeko</a>
-              <a href="/help">Aide</a>
+              <a href="/terms">Conditions</a>
+              <a href="/help">Support</a>
             </div>
           </div>
         </div>
       </footer>
-      {/* Styles globaux */}
+
       <style jsx="true">{`
         .app {
           min-height: 100vh;
           display: flex;
           flex-direction: column;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #029bdc 0%, #daf2f9 50%, #2c5364 100%);
+          position: relative;
+          overflow-x: hidden;
+        }
+
+        .app::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%);
+          pointer-events: none;
         }
 
         .app-header {
-          background: rgba(255, 255, 255, 0.95);
-          padding: 1.5rem 0;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          background: rgba(255, 255, 255, 0.98);
+          backdrop-filter: blur(10px);
+          padding: 1rem 0;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+          position: relative;
+          z-index: 10;
+        }
+
+        .header-content {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .logo-section {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .logo-icon {
+          width: 48px;
+          height: 48px;
+          background: linear-gradient(135deg, #3e5ff2 0%, #d4ceda 100%);
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
         }
 
         .app-header h1 {
           margin: 0;
-          color: #333;
-          font-size: 2rem;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          font-size: 1.8rem;
+          font-weight: 700;
         }
 
         .header-subtitle {
-          margin: 0.5rem 0 0;
+          margin: 0;
           color: #666;
+          font-size: 0.9rem;
         }
 
         .progress-container {
-          background: white;
-          padding: 1rem 0;
-          border-bottom: 1px solid #e0e0e0;
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(10px);
+          padding: 1.5rem 0;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+          position: sticky;
+          top: 0;
+          z-index: 9;
         }
 
         .container {
           max-width: 1200px;
           margin: 0 auto;
-          padding: 0 1rem;
+          padding: 0 2rem;
         }
 
         .progress-steps {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          position: relative;
           max-width: 800px;
           margin: 0 auto;
         }
@@ -470,119 +502,144 @@ function App() {
           flex-direction: column;
           align-items: center;
           cursor: pointer;
-          z-index: 2;
+          position: relative;
           flex: 1;
+          transition: all 0.3s ease;
+        }
+
+        .step:hover .step-label {
+          color: #667eea;
         }
 
         .step-indicator {
-          width: 40px;
-          height: 40px;
+          width: 48px;
+          height: 48px;
           border-radius: 50%;
-          background: #e0e0e0;
+          background: #e8eef2;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-bottom: 0.5rem;
+          margin-bottom: 0.75rem;
           transition: all 0.3s ease;
           position: relative;
-        }
-
-        .step.active .step-indicator {
-          background: #4CAF50;
-          color: white;
-          transform: scale(1.1);
-        }
-
-        .step.completed .step-indicator {
-          background: #4CAF50;
-          color: white;
-        }
-
-        .step-number {
-          font-weight: bold;
-        }
-
-        .step-check {
-          position: absolute;
           font-size: 1.2rem;
         }
 
+        .step.active .step-indicator {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          transform: scale(1.1);
+          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .step.completed .step-indicator {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: white;
+        }
+
+        .step-icon {
+          font-size: 1.2rem;
+        }
+
+        .step-check {
+          font-size: 1.4rem;
+          font-weight: bold;
+        }
+
         .step-label {
-          font-size: 0.9rem;
-          color: #666;
-          font-weight: 500;
+          font-size: 0.85rem;
+          color: #6c757d;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          transition: all 0.3s ease;
         }
 
         .step.active .step-label {
-          color: #4CAF50;
-          font-weight: 600;
+          color: #667eea;
+          font-weight: 700;
         }
 
         .step-connector {
           flex: 1;
           height: 2px;
-          background: #e0e0e0;
+          background: linear-gradient(90deg, #e8eef2 0%, #e8eef2 50%, transparent 100%);
           margin: 0 0.5rem;
+          position: relative;
+          top: -24px;
+        }
+
+        .step.active + .step-connector,
+        .step.completed + .step-connector {
+          background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
         }
 
         .app-main {
           flex: 1;
-          padding: 2rem 0;
+          padding: 3rem 0;
+          position: relative;
+          z-index: 1;
         }
 
         .step-container {
-          animation: fadeIn 0.5s ease;
+          animation: fadeInUp 0.6s ease;
         }
 
         .step-header {
           text-align: center;
-          margin-bottom: 2rem;
-          position: relative;
+          margin-bottom: 2.5rem;
         }
 
         .step-header h2 {
           color: white;
-          margin-bottom: 0.5rem;
-          font-size: 1.8rem;
+          margin-bottom: 0.75rem;
+          font-size: 2rem;
+          font-weight: 700;
+          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .step-description {
           color: rgba(255, 255, 255, 0.9);
-          font-size: 1.1rem;
+          font-size: 1rem;
+          max-width: 600px;
+          margin: 0 auto;
         }
 
         .nav-link {
-          background: none;
+          background: rgba(255, 255, 255, 0.2);
+          backdrop-filter: blur(10px);
           border: none;
           color: white;
-          text-decoration: underline;
           cursor: pointer;
-          font-size: 1rem;
+          font-size: 0.9rem;
           padding: 0.5rem 1rem;
+          border-radius: 8px;
           transition: all 0.3s ease;
-          margin-top: 0.5rem;
+          margin-top: 1rem;
         }
 
         .nav-link:hover {
-          color: #4CAF50;
+          background: rgba(255, 255, 255, 0.3);
+          transform: translateX(-4px);
         }
 
         .error-container {
           margin-bottom: 2rem;
+          animation: slideInDown 0.5s ease;
         }
 
         .alert {
           background: white;
-          border-radius: 8px;
-          padding: 1rem;
+          border-radius: 12px;
+          padding: 1rem 1.5rem;
           display: flex;
           align-items: center;
           gap: 1rem;
-          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
 
         .alert.error {
-          border-left: 4px solid #f44336;
+          border-left: 4px solid #ef4444;
         }
 
         .alert-icon {
@@ -592,7 +649,8 @@ function App() {
         .alert p {
           flex: 1;
           margin: 0;
-          color: #c62828;
+          color: #dc2626;
+          font-weight: 500;
         }
 
         .close-btn {
@@ -602,136 +660,63 @@ function App() {
           cursor: pointer;
           color: #999;
           padding: 0.5rem;
+          transition: all 0.3s ease;
         }
 
         .close-btn:hover {
           color: #333;
+          transform: rotate(90deg);
         }
 
         .warning-message {
-          background: #fff3e0;
-          border-left: 4px solid #ff9800;
-          padding: 1.5rem;
-          border-radius: 8px;
-          text-align: center;
-          color: #e65100;
-        }
-
-        .success-animation {
-          text-align: center;
-          margin: 2rem 0;
-        }
-
-        .checkmark-circle {
-          width: 80px;
-          height: 80px;
-          border-radius: 50%;
-          background: #4CAF50;
-          margin: 0 auto;
-          position: relative;
-          animation: scaleIn 0.5s ease;
-        }
-
-        .checkmark {
-          width: 40px;
-          height: 20px;
-          border-left: 4px solid white;
-          border-bottom: 4px solid white;
-          transform: rotate(-45deg);
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          margin-left: -20px;
-          margin-top: -12px;
-        }
-
-        .success-message {
-          text-align: center;
+          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+          border-left: 4px solid #f59e0b;
           padding: 2rem;
-          background: rgba(255,255,255,0.9);
-          border-radius: 8px;
-          margin-bottom: 2rem;
-        }
-
-        .success-message h2 {
-          color: #4CAF50;
-          margin-bottom: 0.5rem;
-        }
-
-        .registration-summary {
-          background: white;
           border-radius: 12px;
-          padding: 2rem;
-          margin: 2rem 0;
-          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        .summary-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 1.5rem;
-          margin-top: 1.5rem;
-        }
-
-        .summary-card {
-          padding: 1.5rem;
-          background: #f9f9f9;
-          border-radius: 8px;
-        }
-
-        .summary-card h4 {
-          margin: 0 0 1rem;
-          color: #333;
-        }
-
-        .verified {
-          color: #4CAF50;
-          position: relative;
-          padding-left: 1.5rem;
-        }
-
-        .verified::before {
-          content: '✓';
-          position: absolute;
-          left: 0;
-          color: #4CAF50;
-          font-weight: bold;
+          text-align: center;
+          color: #92400e;
+          font-weight: 500;
         }
 
         .action-buttons {
           display: flex;
           gap: 1rem;
           justify-content: center;
+          margin-top: 2rem;
         }
 
         .btn {
           padding: 0.75rem 1.5rem;
           border: none;
-          border-radius: 8px;
+          border-radius: 10px;
           font-size: 1rem;
-          font-weight: 500;
+          font-weight: 600;
           cursor: pointer;
           transition: all 0.3s ease;
+          font-family: inherit;
         }
 
         .btn-primary {
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           color: white;
+          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
 
         .btn-primary:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+          box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
         }
 
         .btn-secondary {
           background: white;
-          color: #333;
-          border: 1px solid #ddd;
+          color: #374151;
+          border: 1px solid #e5e7eb;
         }
 
         .btn-secondary:hover:not(:disabled) {
-          background: #f5f5f5;
+          background: #f9fafb;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
         .btn:disabled {
@@ -748,18 +733,20 @@ function App() {
           display: inline-block;
           width: 20px;
           height: 20px;
-          border: 2px solid rgba(255,255,255,0.3);
+          border: 2px solid rgba(255, 255, 255, 0.3);
           border-top-color: white;
           border-radius: 50%;
-          animation: spin 1s linear infinite;
+          animation: spin 0.8s linear infinite;
           margin-right: 0.5rem;
         }
 
         .app-footer {
-          background: rgba(0, 0, 0, 0.3);
+          background: rgba(0, 0, 0, 0.4);
+          backdrop-filter: blur(10px);
           color: white;
           padding: 1.5rem 0;
           margin-top: auto;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .footer-content {
@@ -770,34 +757,56 @@ function App() {
           gap: 1rem;
         }
 
+        .footer-links {
+          display: flex;
+          gap: 2rem;
+        }
+
         .footer-links a {
-          color: white;
+          color: rgba(255, 255, 255, 0.8);
           text-decoration: none;
-          margin-left: 1.5rem;
-          opacity: 0.8;
-          transition: opacity 0.3s ease;
+          transition: all 0.3s ease;
+          font-size: 0.9rem;
         }
 
         .footer-links a:hover {
-          opacity: 1;
+          color: white;
           text-decoration: underline;
         }
 
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
 
-        @keyframes scaleIn {
-          from { transform: scale(0); }
-          to { transform: scale(1); }
+        @keyframes slideInDown {
+          from {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
 
         @keyframes spin {
-          to { transform: rotate(360deg); }
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         @media (max-width: 768px) {
+          .container {
+            padding: 0 1rem;
+          }
+
           .progress-steps {
             flex-direction: column;
             gap: 1rem;
@@ -811,14 +820,17 @@ function App() {
             flex-direction: row;
             width: 100%;
             gap: 1rem;
+            justify-content: flex-start;
           }
 
           .step-indicator {
             margin-bottom: 0;
+            width: 40px;
+            height: 40px;
           }
 
-          .summary-grid {
-            grid-template-columns: 1fr;
+          .step-label {
+            font-size: 0.9rem;
           }
 
           .action-buttons {
@@ -834,8 +846,12 @@ function App() {
             text-align: center;
           }
 
-          .footer-links a {
-            margin: 0 0.75rem;
+          .footer-links {
+            justify-content: center;
+          }
+
+          .step-header h2 {
+            font-size: 1.5rem;
           }
         }
       `}</style>

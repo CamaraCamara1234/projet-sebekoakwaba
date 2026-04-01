@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 
 
-const UnifiedRegistrationForm = ({ onSubmit, initialData, isUploading }) => {
+const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
   const [formData, setFormData] = useState({
     nom: initialData?.nom || '',
     prenom: initialData?.prenom || '',
@@ -18,19 +18,19 @@ const UnifiedRegistrationForm = ({ onSubmit, initialData, isUploading }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
-  
+
   const fileInputRef = useRef(null);
 
   const handleFileChange = (e) => {
-  const newFiles = Array.from(e.target.files);
-  if (newFiles.length > 0) {
-    setFiles(prevFiles => {
-      const combinedFiles = [...prevFiles, ...newFiles];
-      return combinedFiles.slice(0, 2);
-    });
-    setErrors(prev => ({ ...prev, document: null }));
-  }
-};
+    const newFiles = Array.from(e.target.files);
+    if (newFiles.length > 0) {
+      setFiles(prevFiles => {
+        const combinedFiles = [...prevFiles, ...newFiles];
+        return combinedFiles.slice(0, 2);
+      });
+      setErrors(prev => ({ ...prev, document: null }));
+    }
+  };
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -70,7 +70,7 @@ const UnifiedRegistrationForm = ({ onSubmit, initialData, isUploading }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     const newErrors = validateForm();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -89,7 +89,7 @@ const UnifiedRegistrationForm = ({ onSubmit, initialData, isUploading }) => {
       <div className="form-header">
         <h2>Vérification d'identité</h2>
         <p className="form-subtitle">
-          Veuillez uploader votre pièce d'identité pour démarrer l'extraction des données.<br/>
+          Veuillez uploader votre pièce d'identité pour démarrer l'extraction des données.<br />
           CNI (recto et verso), Titre séjour (recto et verso) ou le passeport
         </p>
       </div>
@@ -101,8 +101,8 @@ const UnifiedRegistrationForm = ({ onSubmit, initialData, isUploading }) => {
             <span className="section-icon">📄</span>
             Pièce d'identité
           </h3>
-          
-          <div 
+
+          <div
             className={`drop-zone ${isDragging ? 'dragging' : ''} ${files.length > 0 ? 'has-files' : ''}`}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
@@ -120,12 +120,12 @@ const UnifiedRegistrationForm = ({ onSubmit, initialData, isUploading }) => {
               <div className="file-previews">
                 {files.map((file, index) => (
                   <div key={index} className="file-preview">
-                    <img 
-                      src={URL.createObjectURL(file)} 
+                    <img
+                      src={URL.createObjectURL(file)}
                       alt={`Document ${index + 1}`}
                       className="preview-image"
                     />
-                    <button 
+                    <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -141,7 +141,7 @@ const UnifiedRegistrationForm = ({ onSubmit, initialData, isUploading }) => {
                   </div>
                 ))}
                 {files.length === 1 && (
-                  <div 
+                  <div
                     className="add-more"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -170,8 +170,8 @@ const UnifiedRegistrationForm = ({ onSubmit, initialData, isUploading }) => {
 
         {/* Bouton de soumission */}
         <div className="form-actions">
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="btn btn-primary btn-large"
             disabled={isUploading}
           >
@@ -525,4 +525,4 @@ const UnifiedRegistrationForm = ({ onSubmit, initialData, isUploading }) => {
   );
 };
 
-export default UnifiedRegistrationForm;
+export default RegistrationForm;

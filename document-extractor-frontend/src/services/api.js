@@ -1,4 +1,6 @@
 const API_BASE = 'https://checkid.akwabasebeko.com/';
+// const API_BASE = 'http://127.0.0.1:8000';
+
 const SESSION_ID_KEY = 'secureid_session_id';
 
 // --- Session Helpers ---
@@ -156,6 +158,28 @@ export const advancedVerifyFaces = (imageFile) => {
  */
 export const validationData = (formData) => {
   return apiRequest('/data_validation/', {
+    method: 'POST',
+    body: formData
+  });
+};
+
+export const updateUserStatus = (data) => {
+  const formData = new FormData();
+  
+  // Conversion de l'objet simple en FormData pour le backend Django (request.POST)
+  Object.keys(data).forEach(key => {
+    const value = data[key];
+    if (value !== null && value !== undefined) {
+      // Pour les objets complexes (comme images_base64), on les sérialise en JSON
+      if (typeof value === 'object' && !(value instanceof File)) {
+        formData.append(key, JSON.stringify(value));
+      } else {
+        formData.append(key, value);
+      }
+    }
+  });
+
+  return apiRequest('/finalisation_process/', {
     method: 'POST',
     body: formData
   });

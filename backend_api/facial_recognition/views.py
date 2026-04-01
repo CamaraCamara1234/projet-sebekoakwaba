@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .services.verify_faces_service import verify_faces_service
 import base64
+import requests
 
 
 def image_to_base64(image_path):
@@ -183,6 +184,74 @@ def verify_face_endpoint(request):
             status=500
         )
     
+@csrf_exempt
+def finalisation_process(request):
+    """
+    Endpoint final recevant les données via FormData pour clôturer le processus.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
+
+    try:
+        # Données reçues via FormData
+        data = request.POST
+        session_id = data.get('session_id', 'N/A')
+
+        response_data = {
+            "date_expiration": data.get('date_expiration', ""),
+            "prenom": data.get('prenom', ""),
+            "cin": data.get('cin', ""),
+            "nationalite": data.get('nationalite', ""),
+            "nom": data.get('nom', ""),
+            "date_naissance": data.get('date_naissance', ""),
+            "code": data.get('code', ""),
+            "motif_sejour": data.get('motif_sejour', ""),
+            "adresse": data.get('adresse', ""),
+            "sexe": data.get('sexe', ""),
+            "type_piece": data.get('type_piece', ""),
+            "session_id": session_id,
+            "statut_verification": data.get('statut_verification', "valide"),
+        }
+
+        # --- Appel API Externe pour mettre à jour l'état de l'utilisateur ---
+        user_id = data.get('user_id')
+        statut_verification = data.get('statut_verification', "en_cours")
+
+        if user_id:
+            try:
+                api_key = 'a7f3d2e9b1c84f6a2d5e8b3c7f1a4d9e2b6c8f3a1d7e4b2c9f5a3d8e1b6c4f7'
+                url = f'https://akwabasebeko.com/api/users/{user_id}/state'
+                
+                # Mapping : valide -> 1 (activé), en_cours -> 2 (en attente)
+                state = 1 if statut_verification == "valide" else 2
+                
+                headers = {
+                    'X-API-KEY': api_key,
+                    'Accept': 'application/json',
+                }
+                payload = {'state': state}
+                
+                ext_response = requests.post(url, headers=headers, json=payload, timeout=10)
+                # print(f"Session {session_id} - API externe (user {user_id}): {ext_response.status_code}")
+                
+                response_data["api_extern_status"] = ext_response.status_code
+                try:
+                    response_data["api_extern_response"] = ext_response.json()
+                except:
+                    pass
+            except Exception as e:
+                logger.error(f"Session {session_id} - Erreur API externe : {str(e)}")
+                response_data["api_extern_error"] = str(e)
+
+        logger.info(f"Session {session_id} - Processus de finalisation terminé avec succès.")
+        return JsonResponse(response_data)
+
+    except Exception as e:
+        logger.error(f"Erreur finalisation : {str(e)}")
+        return JsonResponse({
+            'error': f'Erreur lors du traitement final : {str(e)}'
+        }, status=500)
+
 
 def clear_media_dirs(request):
     # Récupérer session_id depuis les paramètres GET ou POST

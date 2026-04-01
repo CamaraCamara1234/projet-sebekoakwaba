@@ -18,9 +18,6 @@ const DataTable = ({ data, title }) => {
         "date_naissance",
         "sexe",
         "nationalite",
-        "nom_ar",
-        "prenom_ar",
-        "nationalite_ar",
       ].includes(item.label)
     ) {
       groupedData["Informations personnelles"].push(item);
@@ -77,24 +74,17 @@ const formatLabel = (label) => {
   const labels = {
     nom: "Nom",
     prenom: "Prénom",
-    nom_ar: "Nom (arabe)",
-    prenom_ar: "Prénom (arabe)",
     date_naissance: "Date de naissance",
     date_expiration: "Date d'expiration",
     nationalite: "Nationalité",
-    nationalite_ar: "Nationalité (arabe)",
     cin: "Numéro CIN",
     code: "Code MRZ",
     sexe: "Sexe",
     adresse: "Adresse",
     nini: "Numero d'identification nationale",
     motif_sejour: "Motif de séjour",
-    motif_sejour_ar: "Motif de séjour (arabe)",
     pere: "pere",
-    pere_ar: "pere (arabe)",
     mere: "mere",
-    mere_ar: "mere (arabe)",
-    num_etat_civil: "numero d'etat civil",
   };
 
   return labels[label] || label;

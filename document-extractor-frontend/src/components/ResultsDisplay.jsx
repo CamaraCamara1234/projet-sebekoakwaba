@@ -130,10 +130,10 @@ const ResultsDisplay = ({
       ) : (
         // Affichage normal pour extractionResults
         <>
-          <DocumentPreview 
+          {/* <DocumentPreview 
             data={data} 
             extractionKey={extractionKey}
-          />
+          /> */}
 
           <DataTable 
             data={getExtractedData()} 

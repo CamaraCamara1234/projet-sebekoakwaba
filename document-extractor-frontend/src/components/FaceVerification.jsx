@@ -24,10 +24,36 @@ const FaceVerification = ({
   // Utiliser getImageUrl pour la photo de référence
   const photoUrl = referencePhoto;
 
-  const videoConstraints = {
-    width: 1280,
-    height: 720,
-    facingMode: "user",
+  const getVideoConstraints = () => {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      return {
+        width: { ideal: 720, min: 480 },
+        height: { ideal: 1280, min: 640 },
+        facingMode: "user"
+      };
+    }
+
+    return {
+      width: 1280,
+      height: 720,
+      facingMode: "user",
+    };
+  };
+
+  const dataURLToFile = (dataURL, filename) => {
+    const arr = dataURL.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+
+    return new File([u8arr], filename, { type: mime });
   };
 
   const captureImage = () => {
@@ -83,9 +109,8 @@ const FaceVerification = ({
     setError(null);
 
     try {
-      // Convertir l'image base64 en blob
-      const blob = await fetch(capturedImage).then((res) => res.blob());
-      const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
+      // Utiliser dataURLToFile pour éviter fetch sur base64
+      const file = dataURLToFile(capturedImage, "capture_face.jpg");
 
       const verificationFunction = advancedVerifyFaces;
       const verificationResult = await verificationFunction(file);
@@ -179,6 +204,7 @@ const FaceVerification = ({
       background: "#f8f9fa",
       padding: "16px",
       borderRadius: "8px",
+      position: "relative",
     },
     boxTitle: {
       textAlign: "center",
@@ -220,6 +246,63 @@ const FaceVerification = ({
     placeholderIcon: {
       fontSize: "48px",
       marginBottom: "10px",
+    },
+    controlsOverlay: {
+      position: "absolute",
+      bottom: "0",
+      left: "0",
+      right: "0",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: "20px",
+      background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)",
+      zIndex: 10,
+    },
+    captureMain: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: "8px",
+    },
+    btnCaptureRound: {
+      width: "66px",
+      height: "66px",
+      borderRadius: "50%",
+      border: "4px solid white",
+      background: "transparent",
+      padding: "4px",
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      transition: "all 0.2s ease",
+    },
+    captureInner: {
+      width: "100%",
+      height: "100%",
+      border_radius: "50%",
+      background: "white",
+    },
+    captureText: {
+      color: "white",
+      fontSize: "12px",
+      fontWeight: "500",
+      textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+    },
+    btnActionSmall: {
+      width: "40px",
+      height: "40px",
+      borderRadius: "50%",
+      background: "rgba(255, 255, 255, 0.2)",
+      border: "1px solid rgba(255, 255, 255, 0.3)",
+      color: "white",
+      fontSize: "18px",
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      backdropFilter: "blur(4px)",
     },
     controls: {
       display: "flex",
@@ -408,7 +491,7 @@ const FaceVerification = ({
                 audio={false}
                 ref={webcamRef}
                 screenshotFormat="image/jpeg"
-                videoConstraints={videoConstraints}
+                videoConstraints={getVideoConstraints()}
                 style={styles.webcam}
               />
             ) : capturedImage ? (
@@ -426,37 +509,50 @@ const FaceVerification = ({
           </div>
 
           {isCameraActive ? (
-            <div style={styles.controls}>
-              <button
-                onClick={captureImage}
-                disabled={isLoading}
-                style={{
-                  ...styles.button,
-                  ...styles.captureButton,
-                  ...(isLoading ? styles.disabledButton : {}),
-                }}
-              >
-                📸 Capturer
-              </button>
+            <div style={styles.controlsOverlay}>
               <button
                 onClick={stopCamera}
-                style={{ ...styles.button, ...styles.cancelButton }}
+                style={styles.btnActionSmall}
+                title="Annuler"
               >
-                Annuler
+                ✕
               </button>
+
+              <div style={styles.captureMain}>
+                <button
+                  onClick={captureImage}
+                  disabled={isLoading}
+                  style={{
+                    ...styles.btnCaptureRound,
+                    ...(isLoading ? styles.disabledButton : {}),
+                  }}
+                  title="Capturer"
+                >
+                  <div style={styles.captureInner}></div>
+                </button>
+                <span style={styles.captureText}>Capturer</span>
+              </div>
+
+              <div style={{ width: "40px" }}></div> {/* Spacer pour l'alignement */}
             </div>
           ) : capturedImage && !showFinalMessage ? (
-            <div style={styles.controls}>
-              <button
-                onClick={() => {
-                  setCapturedImage(null);
-                  setResult(null);
-                  setError(null);
-                }}
-                style={{ ...styles.button, ...styles.secondaryButton }}
-              >
-                🔄 Reprendre
-              </button>
+            <div style={styles.controlsOverlay}>
+              <div style={{ width: "40px" }}></div>
+              <div style={styles.captureMain}>
+                <button
+                  onClick={() => {
+                    setCapturedImage(null);
+                    setResult(null);
+                    setError(null);
+                  }}
+                  style={styles.btnCaptureRound}
+                  title="Reprendre"
+                >
+                  <div style={{ ...styles.captureInner, background: "rgba(255,255,255,0.7)" }}>🔄</div>
+                </button>
+                <span style={styles.captureText}>Reprendre</span>
+              </div>
+              <div style={{ width: "40px" }}></div>
             </div>
           ) : null}
         </div>
