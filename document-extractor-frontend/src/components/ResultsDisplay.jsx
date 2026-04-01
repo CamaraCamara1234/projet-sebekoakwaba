@@ -100,7 +100,7 @@ const ResultsDisplay = ({
               .filter(([key]) => !key.startsWith('photo_') && !key.includes('_url') && key !== 'date_verification' && key !== 'statut_verification' && key !== 'images_base64')
               .map(([key, value]) => (
                 <div key={key} className="data-item">
-                  <span className="data-label">{key}:</span>
+                  <span className="data-label">{formatLabel(key)}:</span>
                   <span className="data-value">{value || '-'}</span>
                 </div>
               ))}
@@ -413,6 +413,41 @@ const ResultsDisplay = ({
       `}</style>
     </div>
   );
+};
+
+const formatLabel = (label) => {
+  const labels = {
+    nom: "Nom",
+    prenom: "Prénom",
+    nom_ar: "Nom (arabe)",
+    prenom_ar: "Prénom (arabe)",
+    date_naissance: "Date de naissance",
+    date_expiration: "Date d'expiration",
+    nationalite: "Nationalité",
+    nationalite_ar: "Nationalité (arabe)",
+    cin: "Numéro CIN",
+    code: "Code MRZ",
+    sexe: "Sexe",
+    adresse: "Adresse",
+    nini: "Numero d'identification nationale",
+    motif_sejour: "Motif de séjour",
+    motif_sejour_ar: "Motif de séjour (arabe)",
+    pere: "Père",
+    pere_ar: "Père (arabe)",
+    mere: "Mère",
+    mere_ar: "Mère (arabe)",
+    num_etat_civil: "Numéro d'état civil",
+    lieu_naissance: "Lieu de naissance",
+    type_piece: "Type de document",
+    numero_piece: "N° de pièce",
+    profession: "Profession",
+    date_delivrance: "Date de délivrance",
+    numero: "N° de passeport",
+    score_confiance: "Score de confiance",
+    distance_faciale: "Distance faciale"
+  };
+
+  return labels[label] || label;
 };
 
 export default ResultsDisplay;

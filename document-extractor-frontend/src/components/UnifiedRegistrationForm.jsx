@@ -4,7 +4,6 @@ import React, { useState, useRef } from 'react';
 
 const UnifiedRegistrationForm = ({ onSubmit, initialData, isUploading }) => {
   const [formData, setFormData] = useState({
-    // Champs du document (seront extraits plus tard)
     nom: initialData?.nom || '',
     prenom: initialData?.prenom || '',
     date_naissance: initialData?.date_naissance || '',
@@ -12,13 +11,7 @@ const UnifiedRegistrationForm = ({ onSubmit, initialData, isUploading }) => {
     nationalite: initialData?.nationalite || '',
     numero_piece: initialData?.numero_piece || '',
     type_piece: initialData?.type_piece || 'cni',
-    
-    // Champs complémentaires (non sur la pièce)
-    email: initialData?.email || '',
-    telephone: initialData?.telephone || '',
-    adresse: initialData?.adresse || '',
-    profession: initialData?.profession || '',
-    situation_matrimoniale: initialData?.situation_matrimoniale || '',
+    type_piece: initialData?.type_piece || 'cni',
   });
 
   const [files, setFiles] = useState([]);
@@ -27,17 +20,6 @@ const UnifiedRegistrationForm = ({ onSubmit, initialData, isUploading }) => {
   const [touched, setTouched] = useState({});
   
   const fileInputRef = useRef(null);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: null }));
-    }
-  };
 
   const handleFileChange = (e) => {
   const newFiles = Array.from(e.target.files);
@@ -78,17 +60,6 @@ const UnifiedRegistrationForm = ({ onSubmit, initialData, isUploading }) => {
   const validateForm = () => {
     const newErrors = {};
 
-    // Validation des champs obligatoires
-    if (!formData.email) {
-      newErrors.email = 'L\'email est requis';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Email invalide';
-    }
-
-    if (formData.telephone && !/^[0-9+\-\s]{8,15}$/.test(formData.telephone)) {
-      newErrors.telephone = 'Format de téléphone invalide';
-    }
-
     // Validation du document
     if (files.length === 0) {
       newErrors.document = 'Veuillez uploader votre pièce d\'identité';
@@ -112,21 +83,13 @@ const UnifiedRegistrationForm = ({ onSubmit, initialData, isUploading }) => {
     });
   };
 
-  const handleBlur = (field) => {
-    setTouched(prev => ({ ...prev, [field]: true }));
-  };
-
-  const getFieldClass = (field) => {
-    if (!touched[field]) return '';
-    return errors[field] ? 'error' : 'valid';
-  };
 
   return (
     <div className="unified-form-container">
       <div className="form-header">
-        <h2>Inscription</h2>
+        <h2>Vérification d'identité</h2>
         <p className="form-subtitle">
-          Veuillez uploader votre pièce d'identité et compléter les informations manquantes.<br/>
+          Veuillez uploader votre pièce d'identité pour démarrer l'extraction des données.<br/>
           CNI (recto et verso), Titre séjour (recto et verso) ou le passeport
         </p>
       </div>
@@ -203,94 +166,6 @@ const UnifiedRegistrationForm = ({ onSubmit, initialData, isUploading }) => {
           {errors.document && (
             <span className="error-message">{errors.document}</span>
           )}
-        </div>
-        {/* Section Informations complémentaires (saisies par l'utilisateur) */}
-        <div className="form-section">
-          <h3 className="section-title">
-            <span className="section-icon">✏️</span>
-            Informations complémentaires
-          </h3>
-          <p className="section-note">
-            Veuillez remplir les informations ci-dessous
-          </p>
-
-          <div className="form-grid">
-            <div className="form-group">
-              <label htmlFor="email">
-                Email <span className="required">*</span>
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                onBlur={() => handleBlur('email')}
-                className={getFieldClass('email')}
-                placeholder="exemple@email.com"
-              />
-              {touched.email && errors.email && (
-                <span className="error-message">{errors.email}</span>
-              )}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="telephone">Téléphone</label>
-              <input
-                type="tel"
-                id="telephone"
-                name="telephone"
-                value={formData.telephone}
-                onChange={handleChange}
-                onBlur={() => handleBlur('telephone')}
-                className={getFieldClass('telephone')}
-                placeholder="+212 6 12 34 56 78"
-              />
-              {touched.telephone && errors.telephone && (
-                <span className="error-message">{errors.telephone}</span>
-              )}
-            </div>
-
-            <div className="form-group full-width">
-              <label htmlFor="adresse">Adresse postale</label>
-              <textarea
-                id="adresse"
-                name="adresse"
-                value={formData.adresse}
-                onChange={handleChange}
-                rows="3"
-                placeholder="Votre adresse complète"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="profession">Profession</label>
-              <input
-                type="text"
-                id="profession"
-                name="profession"
-                value={formData.profession}
-                onChange={handleChange}
-                placeholder="Votre profession"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="situation_matrimoniale">Situation matrimoniale</label>
-              <select
-                id="situation_matrimoniale"
-                name="situation_matrimoniale"
-                value={formData.situation_matrimoniale}
-                onChange={handleChange}
-              >
-                <option value="">Sélectionnez</option>
-                <option value="celibataire">Célibataire</option>
-                <option value="marie">Marié(e)</option>
-                <option value="divorce">Divorcé(e)</option>
-                <option value="veuf">Veuf(ve)</option>
-              </select>
-            </div>
-          </div>
         </div>
 
         {/* Bouton de soumission */}

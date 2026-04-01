@@ -1,10 +1,12 @@
-// services/api.js
-const API_BASE = 'http://213.156.132.116:8000';
-
-// Clé pour le localStorage
+const API_BASE = 'https://checkid.akwabasebeko.com/';
 const SESSION_ID_KEY = 'secureid_session_id';
 
-// Fonction pour sauvegarder le session_id
+// --- Session Helpers ---
+
+/**
+ * Sauvegarde le session_id dans le localStorage
+ * @param {string} sessionId 
+ */
 export const saveSessionId = (sessionId) => {
   if (sessionId) {
     localStorage.setItem(SESSION_ID_KEY, sessionId);
@@ -12,234 +14,167 @@ export const saveSessionId = (sessionId) => {
   }
 };
 
-// Fonction pour récupérer le session_id
+/**
+ * Récupère le session_id depuis le localStorage
+ * @returns {string|null}
+ */
 export const getSessionId = () => {
   return localStorage.getItem(SESSION_ID_KEY);
 };
 
-// Fonction pour effacer le session_id
+/**
+ * Efface le session_id du localStorage
+ */
 export const clearSessionId = () => {
   localStorage.removeItem(SESSION_ID_KEY);
   console.log('Session ID effacé');
 };
 
-// Fonction utilitaire pour gérer les réponses
+// --- API Core Logic ---
+
+/**
+ * Gère la réponse du serveur
+ * @param {Response} response 
+ * @returns {Promise<any>}
+ */
 const handleResponse = async (response) => {
   const contentType = response.headers.get('content-type');
 
   if (contentType && contentType.includes('application/json')) {
     const data = await response.json();
 
-    // Si la réponse contient un session_id, le sauvegarder
+    // Auto-sauvegarde du session_id si présent
     if (data.session_id) {
       saveSessionId(data.session_id);
+    }
+
+    if (!response.ok) {
+      throw new Error(data.error || data.message || `Erreur HTTP ${response.status}`);
     }
 
     return data;
   }
 
   const text = await response.text();
-  console.error('Réponse non-JSON reçue:', text.substring(0, 200));
-
-  if (text.includes('<!DOCTYPE') || text.includes('<html')) {
-    throw new Error(`Le serveur a retourné une page HTML (code ${response.status}). Vérifiez que le backend est bien démarré sur ${API_BASE}`);
-  }
-
-  throw new Error(`Réponse inattendue du serveur: ${text.substring(0, 100)}`);
-};
-
-// Fonction pour construire les URLs des images avec session
-export const getImageUrl = (path) => {
-  if (!path || path === "N/A") return null;
-  if (path.startsWith('http')) return path;
-
-  const sessionId = getSessionId();
-  const baseUrl = 'http://213.156.132.116:8000';
-
-  // Construire l'URL de base
-  let imageUrl = `${baseUrl}${path}`;
-
-  // Ajouter les paramètres
-  const params = [];
-
-  if (sessionId) {
-    params.push(`session_id=${sessionId}`);
-  }
-
-  // Ajout du paramètre pour ignorer l'avertissement ngrok
-  params.push(`ngrok-skip-browser-warning=1`);
-
-  // Ajouter un timestamp pour éviter le cache
-  params.push(`t=${Date.now()}`);
-
-  if (params.length > 0) {
-    imageUrl = `${imageUrl}?${params.join('&')}`;
-  }
-
-  // console.log('URL générée:', imageUrl);
-  return imageUrl;
-};
-
-// Extraction simple (recto seul)
-export const extractSingleDocument = async (formData) => {
-  try {
-    console.log('Envoi requête à:', `${API_BASE}/extraction_front/`);
-
-    const response = await fetch(`${API_BASE}/extraction_front/`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      try {
-        const errorData = await handleResponse(response);
-        throw new Error(errorData.message || `Erreur HTTP ${response.status}`);
-      } catch (e) {
-        throw new Error(`Erreur serveur (${response.status}): Vérifiez que le backend est accessible`);
-      }
+  
+  if (!response.ok) {
+    if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+      throw new Error(`Le serveur a retourné une erreur HTML (${response.status}). Le backend est peut-être hors service.`);
     }
+    throw new Error(`Erreur serveur (${response.status}): ${text.substring(0, 100)}`);
+  }
 
+  return text;
+};
+
+/**
+ * Fonction générique pour effectuer des requêtes API
+ * @param {string} endpoint 
+ * @param {Object} options 
+ */
+const apiRequest = async (endpoint, options = {}) => {
+  const url = `${API_BASE}${endpoint}`;
+  
+  // Configuration par défaut
+  const fetchOptions = {
+    method: options.method || 'GET',
+    ...options
+  };
+
+  // Gestion automatique du session_id pour les requêtes POST avec FormData
+  if (fetchOptions.method === 'POST' && fetchOptions.body instanceof FormData) {
+    const sessionId = getSessionId();
+    if (sessionId && !fetchOptions.body.has('session_id')) {
+      fetchOptions.body.append('session_id', sessionId);
+    }
+  }
+
+  try {
+    const response = await fetch(url, fetchOptions);
     return await handleResponse(response);
   } catch (error) {
-    console.error('Erreur détaillée:', error);
+    console.error(`API Error [${endpoint}]:`, error);
     throw error;
   }
 };
 
-// Extraction recto-verso
-export const extractDualDocuments = async (formData) => {
-  try {
-    console.log('Envoi requête à:', `${API_BASE}/extraction_dual/`);
+// --- Exported API Functions ---
 
-    const response = await fetch(`${API_BASE}/extraction_dual/`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      try {
-        const errorData = await handleResponse(response);
-        throw new Error(errorData.message || `Erreur HTTP ${response.status}`);
-      } catch (e) {
-        throw new Error(`Erreur serveur (${response.status}): Vérifiez que le backend est accessible`);
-      }
-    }
-
-    return await handleResponse(response);
-  } catch (error) {
-    console.error('Erreur détaillée:', error);
-    throw error;
-  }
+/**
+ * Extraction d'un document simple (ex: Passeport)
+ * @param {FormData} formData 
+ */
+export const extractSingleDocument = (formData) => {
+  return apiRequest('/extraction_front/', {
+    method: 'POST',
+    body: formData
+  });
 };
 
-// Vérification faciale simple
-export const verifyFaces = async (imageFile) => {
+/**
+ * Extraction recto-verso
+ * @param {FormData} formData 
+ */
+export const extractDualDocuments = (formData) => {
+  return apiRequest('/extraction_dual/', {
+    method: 'POST',
+    body: formData
+  });
+};
+
+/**
+ * Vérification faciale simple
+ * @param {File} imageFile 
+ */
+export const verifyFaces = (imageFile) => {
   const formData = new FormData();
   formData.append('image', imageFile);
-
-  // Ajouter le session_id s'il existe
-  const sessionId = getSessionId();
-  if (sessionId) {
-    formData.append('session_id', sessionId);
-  }
-
-  try {
-    const response = await fetch(`${API_BASE}/face_verification/`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Erreur lors de la vérification faciale');
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Face verification error:', error);
-    throw error;
-  }
+  
+  return apiRequest('/face_verification/', {
+    method: 'POST',
+    body: formData
+  });
 };
 
-
-// advenced face verification
-export const AdvencedverifyFaces = async (imageFile) => {
+/**
+ * Vérification faciale avancée
+ * @param {File} imageFile 
+ */
+export const advancedVerifyFaces = (imageFile) => {
   const formData = new FormData();
   formData.append('image', imageFile);
-
-  // Ajouter le session_id s'il existe
-  const sessionId = getSessionId();
-  if (sessionId) {
-    formData.append('session_id', sessionId);
-  }
-
-  try {
-    const response = await fetch(`${API_BASE}/advenced_face_verification/`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Erreur lors de la vérification faciale');
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Face verification error:', error);
-    throw error;
-  }
+  
+  return apiRequest('/advenced_face_verification/', {
+    method: 'POST',
+    body: formData
+  });
 };
 
-export const validationData = async (formData) => {
-  // formData.append('session_id', getSessionId());
-
-  try {
-    const response = await fetch(`${API_BASE}/data_validation/`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Erreur lors de la validation des données');
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Validation data error:', error);
-    throw error;
-  }
+/**
+ * Validation des données extraites
+ * @param {FormData} formData 
+ */
+export const validationData = (formData) => {
+  return apiRequest('/data_validation/', {
+    method: 'POST',
+    body: formData
+  });
 };
 
-
-// Nettoyage des dossiers
+/**
+ * Nettoyage des fichiers temporaires de session
+ */
 export const cleanDirectories = async () => {
-
-  const formData = new FormData();
-
-  formData.append('session_id', getSessionId());
-
   try {
-    console.log('Nettoyage des dossiers...');
-
-    const response = await fetch(`${API_BASE}/clear_session_files/`, {
+    const result = await apiRequest('/clear_session_files/', {
       method: 'POST',
-      body: formData
+      body: new FormData() // apiRequest ajoutera le session_id automatiquement
     });
 
-    if (!response.ok) {
-      throw new Error(`Erreur HTTP ${response.status}`);
-    }
-
-    const result = await handleResponse(response);
-
-    // Effacer le session_id après nettoyage
+    // Optionnel : Effacer localement après succès du nettoyage serveur
     clearSessionId();
-
     return result;
   } catch (error) {
-    console.error('Clean directories error:', error);
     return { status: 'warning', message: 'Nettoyage non effectué' };
   }
 };

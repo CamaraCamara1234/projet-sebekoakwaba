@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import UnifiedRegistrationForm from './components/UnifiedRegistrationForm';
 import ReviewData from './components/ReviewData';
 import FaceVerification from './components/FaceVerification';
@@ -7,7 +7,6 @@ import {
   extractDualDocuments,
   cleanDirectories,
   clearSessionId,
-  getImageUrl
 } from './services/api';
 import './assets/styles/main.css';
 import ResultsDisplay from './components/ResultsDisplay';
@@ -25,6 +24,28 @@ function App() {
   const [extractionKey, setExtractionKey] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [externalData, setExternalData] = useState(null);
+
+  // Récupérer les données de l'URL au chargement
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const data = {};
+    const keys = ['id', 'nom', 'prenom', 'email', 'username', 'ville', 'adresse', 'telephone'];
+    
+    let hasData = false;
+    keys.forEach(key => {
+      const value = params.get(key);
+      if (value) {
+        data[key] = value;
+        hasData = true;
+      }
+    });
+
+    if (hasData) {
+      console.log('📦 Données extraites de l\'URL:', data);
+      setExternalData(data);
+    }
+  }, []);
 
   // Étape 1 : Soumission du formulaire unifié
   const handleFormSubmit = async ({ formData: userData, files }) => {
@@ -107,7 +128,7 @@ function App() {
       ...reviewData,
       session_id: result.session_id || extractionResults?.session_id || localStorage.getItem('secureid_session_id'),
       statut_verification: result.status || (result.verified ? 'valide' : 'en_cours'),
-      photo_reference_url: extractionResults?.images_base64?.photo || (extractionResults?.photo ? getImageUrl(extractionResults.photo) : null),
+      photo_reference_url: extractionResults?.images_base64?.photo || (extractionResults?.photo ? extractionResults.photo : null),
       photo_capture_url: result.photo_capture_base64 || result.captured_photo || null,
       date_verification: new Date().toISOString(),
       score_confiance: result.confidence || result.similarity || 0,
@@ -205,6 +226,7 @@ function App() {
             <ReviewData
               extractedData={extractionResults}
               formData={formData}
+              externalData={externalData}
               onConfirm={handleReviewConfirm}
               onEdit={handleEdit}
               isProcessing={isProcessing}

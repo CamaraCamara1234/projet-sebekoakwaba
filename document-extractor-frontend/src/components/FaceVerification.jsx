@@ -1,7 +1,7 @@
 // components/FaceVerification.jsx
 import React, { useState, useRef } from "react";
 import Webcam from "react-webcam";
-import { verifyFaces, getImageUrl, AdvencedverifyFaces } from "../services/api";
+import { verifyFaces, advancedVerifyFaces } from "../services/api";
 
 const FaceVerification = ({
   referencePhoto,
@@ -15,8 +15,8 @@ const FaceVerification = ({
   const [error, setError] = useState(null);
   const [capturedImage, setCapturedImage] = useState(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
-  const [attemptCount, setAttemptCount] = useState(0); // Compteur de tentatives
-  const [showFinalMessage, setShowFinalMessage] = useState(false); // Afficher message final
+  const [attemptCount, setAttemptCount] = useState(0);
+  const [showFinalMessage, setShowFinalMessage] = useState(false);
 
   const webcamRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -87,7 +87,7 @@ const FaceVerification = ({
       const blob = await fetch(capturedImage).then((res) => res.blob());
       const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
 
-      const verificationFunction = AdvencedverifyFaces;
+      const verificationFunction = advancedVerifyFaces;
       const verificationResult = await verificationFunction(file);
 
       setResult(verificationResult);

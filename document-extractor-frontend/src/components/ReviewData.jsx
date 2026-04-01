@@ -5,6 +5,7 @@ import { getImageUrl, validationData, getSessionId } from '../services/api';
 const ReviewData = ({
   extractedData,
   formData,
+  externalData,
   onConfirm,
   onEdit,
   isProcessing
@@ -229,11 +230,6 @@ const ReviewData = ({
 
   const documentFields = getDocumentFields();
 
-  const userFields = [
-    { key: 'email', label: 'Email', type: 'email' },
-    { key: 'telephone', label: 'Téléphone', type: 'tel' },
-    { key: 'situation_matrimoniale', label: 'Situation matrimoniale', type: 'select' }
-  ];
 
   return (
     <div className="review-container">
@@ -269,6 +265,29 @@ const ReviewData = ({
         </div>
       )}
 
+      {/* Données de référence de l'URL */}
+      {externalData && (
+        <div className="external-data-reference">
+          <h3 className="section-title">
+            <span className="section-icon">🔗</span>
+            Données de référence (Système externe)
+          </h3>
+          <p className="section-note">
+            Ces informations ont été transmises par le système appelant (ID: {externalData.id || 'N/A'})
+          </p>
+          <div className="external-data-grid">
+            {Object.entries(externalData)
+              .filter(([key]) => key !== 'id')
+              .map(([key, value]) => (
+                <div key={key} className="external-item">
+                  <span className="external-label">{key}:</span>
+                  <span className="external-value">{value}</span>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
       <div className="review-grid">
         {/* Section Document */}
         <div className="review-section">
@@ -283,11 +302,18 @@ const ReviewData = ({
               const confidence = field.confidence * 100;
               const currentValue = editedData[field.key] || extractedValue || '';
               const validationStatus = getValidationStatus(field.key);
+              
+              // Comparaison avec les données externes (URL)
+              const referenceValue = externalData?.[field.key];
+              const hasDiscrepancy = referenceValue && currentValue && referenceValue.toLowerCase() !== currentValue.toLowerCase();
 
-              // Déterminer la classe CSS en fonction de la validation
+              // Déterminer la classe CSS en fonction de la validation et des données externes
               let cardClass = 'review-card';
               if (validationStatus) {
                 cardClass += validationStatus.verified ? ' verified' : ' warning';
+              }
+              if (hasDiscrepancy) {
+                cardClass += ' discrepancy';
               }
 
               return (
@@ -353,6 +379,15 @@ const ReviewData = ({
                     </div>
                   )}
 
+                  {referenceValue && (
+                    <div className={`reference-info ${hasDiscrepancy ? 'error' : 'success'}`}>
+                      <small>
+                        {hasDiscrepancy ? '❌ Diffère du système: ' : '✅ Correspond au système: '}
+                        <strong>{referenceValue}</strong>
+                      </small>
+                    </div>
+                  )}
+
                   <div className="card-footer">
                     <div className="confidence-bar">
                       <div
@@ -373,85 +408,6 @@ const ReviewData = ({
           </div>
         </div>
 
-        {/* Section Utilisateur */}
-        <div className="review-section">
-          <h3 className="section-title">
-            <span className="section-icon">✏️</span>
-            Informations saisies
-          </h3>
-
-          <div className="review-cards">
-            {userFields.map(field => {
-              const currentValue = editedData[field.key] || '';
-
-              return (
-                <div key={field.key} className="review-card user-card">
-                  <div className="card-header">
-                    <span className="field-label">{field.label}</span>
-                    <span className="field-source user">Saisie</span>
-                  </div>
-
-                  <div className="card-content">
-                    {editMode[field.key] ? (
-                      <div className="edit-mode">
-                        {field.type === 'select' ? (
-                          <select
-                            defaultValue={currentValue}
-                            className="edit-input"
-                            id={`edit-${field.key}`}
-                            autoFocus
-                          >
-                            <option value="">Sélectionnez</option>
-                            <option value="celibataire">Célibataire</option>
-                            <option value="marie">Marié(e)</option>
-                            <option value="divorce">Divorcé(e)</option>
-                            <option value="veuf">Veuf(ve)</option>
-                          </select>
-                        ) : (
-                          <input
-                            type={field.type || 'text'}
-                            defaultValue={currentValue}
-                            className="edit-input"
-                            id={`edit-${field.key}`}
-                            autoFocus
-                          />
-                        )}
-                        <div className="edit-actions">
-                          <button
-                            onClick={() => {
-                              const input = document.getElementById(`edit-${field.key}`);
-                              handleSave(field.key, input.value);
-                            }}
-                            className="save-btn"
-                          >
-                            ✓
-                          </button>
-                          <button
-                            onClick={() => handleCancel(field.key)}
-                            className="cancel-btn"
-                          >
-                            ✗
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="view-mode">
-                        <span className="field-value">{currentValue || '-'}</span>
-                        <button
-                          onClick={() => handleEdit(field.key)}
-                          className="edit-btn"
-                          title="Modifier"
-                        >
-                          ✏️
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
       </div>
 
       {/* Images du document */}
@@ -661,9 +617,7 @@ const ReviewData = ({
         }
 
         .review-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 2rem;
+          display: block;
           margin-bottom: 2rem;
         }
 
@@ -672,6 +626,47 @@ const ReviewData = ({
           border-radius: 12px;
           padding: 1.5rem;
           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .external-data-reference {
+          background: #e3f2fd;
+          border-radius: 12px;
+          padding: 1.5rem;
+          margin-bottom: 2rem;
+          border-left: 4px solid #2196f3;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .external-data-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 1rem;
+          margin-top: 1rem;
+        }
+
+        .external-item {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .external-label {
+          font-size: 0.8rem;
+          color: #1976d2;
+          font-weight: bold;
+          text-transform: uppercase;
+        }
+
+        .external-value {
+          font-size: 1rem;
+          color: #333;
+          font-weight: 500;
+        }
+
+        .section-note {
+          font-size: 0.9rem;
+          color: #666;
+          margin-top: -1rem;
+          margin-bottom: 1rem;
         }
 
         .section-title {
@@ -713,6 +708,11 @@ const ReviewData = ({
 
         .review-card.warning {
           border-left-color: #FF9800;
+        }
+
+        .review-card.discrepancy {
+          border-left-color: #f44336;
+          background-color: #fffde7;
         }
 
         .card-header {
@@ -766,6 +766,26 @@ const ReviewData = ({
           color: #2e7d32;
           font-size: 0.85rem;
           border-left: 3px solid #4CAF50;
+        }
+
+        .reference-info {
+          margin: 0.5rem 0;
+          padding: 0.5rem;
+          border-radius: 4px;
+          font-size: 0.85rem;
+          border-left: 3px solid;
+        }
+
+        .reference-info.success {
+          background: #e8f5e9;
+          color: #2e7d32;
+          border-left-color: #4CAF50;
+        }
+
+        .reference-info.error {
+          background: #ffebee;
+          color: #c62828;
+          border-left-color: #f44336;
         }
 
         .card-content {
