@@ -1,4 +1,4 @@
-const API_BASE = 'https://checkid.akwabasebeko.com/';
+const API_BASE = 'https://checkid.akwabasebeko.com';
 // const API_BASE = 'http://127.0.0.1:8000';
 
 const SESSION_ID_KEY = 'secureid_session_id';
@@ -12,7 +12,7 @@ const SESSION_ID_KEY = 'secureid_session_id';
 export const saveSessionId = (sessionId) => {
   if (sessionId) {
     localStorage.setItem(SESSION_ID_KEY, sessionId);
-    console.log('Session ID sauvegardé:', sessionId);
+    // console.log('Session ID sauvegardé:', sessionId);
   }
 };
 
@@ -58,7 +58,7 @@ const handleResponse = async (response) => {
   }
 
   const text = await response.text();
-  
+
   if (!response.ok) {
     if (text.includes('<!DOCTYPE') || text.includes('<html')) {
       throw new Error(`Le serveur a retourné une erreur HTML (${response.status}). Le backend est peut-être hors service.`);
@@ -76,7 +76,7 @@ const handleResponse = async (response) => {
  */
 const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_BASE}${endpoint}`;
-  
+
   // Configuration par défaut
   const fetchOptions = {
     method: options.method || 'GET',
@@ -131,7 +131,7 @@ export const extractDualDocuments = (formData) => {
 export const verifyFaces = (imageFile) => {
   const formData = new FormData();
   formData.append('image', imageFile);
-  
+
   return apiRequest('/face_verification/', {
     method: 'POST',
     body: formData
@@ -145,7 +145,7 @@ export const verifyFaces = (imageFile) => {
 export const advancedVerifyFaces = (imageFile) => {
   const formData = new FormData();
   formData.append('image', imageFile);
-  
+
   return apiRequest('/advenced_face_verification/', {
     method: 'POST',
     body: formData
@@ -165,7 +165,7 @@ export const validationData = (formData) => {
 
 export const updateUserStatus = (data) => {
   const formData = new FormData();
-  
+
   // Conversion de l'objet simple en FormData pour le backend Django (request.POST)
   Object.keys(data).forEach(key => {
     const value = data[key];
@@ -189,16 +189,26 @@ export const updateUserStatus = (data) => {
  * Nettoyage des fichiers temporaires de session
  */
 export const cleanDirectories = async () => {
+  const sessionId = getSessionId();
+  if (!sessionId) {
+    console.log('Pas de session à nettoyer');
+    return { status: 'success', message: 'Aucune session active' };
+  }
+
   try {
+    // Note: apiRequest ajoutera automatiquement le session_id car il est dans le localStorage
     const result = await apiRequest('/clear_session_files/', {
       method: 'POST',
-      body: new FormData() // apiRequest ajoutera le session_id automatiquement
+      body: new FormData()
     });
 
-    // Optionnel : Effacer localement après succès du nettoyage serveur
-    clearSessionId();
+    console.log('Session nettoyée côté serveur:', result);
     return result;
   } catch (error) {
-    return { status: 'warning', message: 'Nettoyage non effectué' };
+    console.warn('Erreur lors du nettoyage serveur:', error);
+    return { status: 'warning', message: 'Nettoyage serveur incomplet' };
+  } finally {
+    // On efface TOUJOURS l'ID local pour permettre une nouvelle session propre
+    clearSessionId();
   }
 };

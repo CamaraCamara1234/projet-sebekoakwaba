@@ -1,5 +1,5 @@
 // components/FaceVerification.jsx
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Webcam from "react-webcam";
 import { verifyFaces, advancedVerifyFaces } from "../services/api";
 
@@ -8,7 +8,7 @@ const FaceVerification = ({
   extractionKey,
   onVerificationComplete,
   useAdvanced = true,
-  photoPath, // Nouveau prop pour le chemin de la photo
+  photoPath,
 }) => {
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -17,21 +17,47 @@ const FaceVerification = ({
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [attemptCount, setAttemptCount] = useState(0);
   const [showFinalMessage, setShowFinalMessage] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const webcamRef = useRef(null);
   const fileInputRef = useRef(null);
+  const containerRef = useRef(null);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
-  // Utiliser getImageUrl pour la photo de référence
+  // Détecter le mobile et la taille du conteneur
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsMobile(mobile);
+    };
+    checkMobile();
+
+    const updateSize = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setContainerSize({
+          width: rect.width,
+          height: rect.width * 0.75, // Ratio 4:3 pour la caméra
+        });
+      }
+    };
+
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+
   const photoUrl = referencePhoto;
 
   const getVideoConstraints = () => {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-    if (isMobile) {
+    if (isMobileDevice) {
       return {
-        width: { ideal: 720, min: 480 },
-        height: { ideal: 1280, min: 640 },
-        facingMode: "user"
+        width: { ideal: 480, min: 360, max: 720 },
+        height: { ideal: 640, min: 480, max: 1280 },
+        facingMode: "user",
+        aspectRatio: 0.75
       };
     }
 
@@ -97,8 +123,6 @@ const FaceVerification = ({
     reader.readAsDataURL(file);
   };
 
-  // components/FaceVerification.jsx - Modifier handleVerification
-
   const handleVerification = async () => {
     if (!capturedImage) {
       setError("Veuillez capturer ou uploader une image");
@@ -109,7 +133,6 @@ const FaceVerification = ({
     setError(null);
 
     try {
-      // Utiliser dataURLToFile pour éviter fetch sur base64
       const file = dataURLToFile(capturedImage, "capture_face.jpg");
 
       const verificationFunction = advancedVerifyFaces;
@@ -121,44 +144,35 @@ const FaceVerification = ({
         console.log("Émotion détectée:", verificationResult.dominant_emotion);
       }
 
-      // Gérer les tentatives
       if (!verificationResult.verified) {
         const newAttemptCount = attemptCount + 1;
         setAttemptCount(newAttemptCount);
 
         if (newAttemptCount >= 2) {
-          // Après 2 échecs, afficher le message final
           setShowFinalMessage(true);
 
-          // Créer un résultat avec statut "en_cours"
           const pendingResult = {
             ...verificationResult,
             session_id: localStorage.getItem("session_id"),
             status: "en_cours",
-            message:
-              "Votre demande est en cours de validation. Nos services vous recontacteront.",
-            captured_photo: capturedImage, // Ajouter la photo capturée
+            message: "Votre demande est en cours de validation. Nos services vous recontacteront.",
+            captured_photo: capturedImage,
           };
 
-          // Appeler onVerificationComplete avec le statut "en_cours"
           if (onVerificationComplete) {
             onVerificationComplete(pendingResult);
           }
         } else {
-          // Premier échec : message d'encouragement
-          setError(
-            "Votre visage semble ne pas correspondre. Veuillez bien positionner votre visage.",
-          );
+          setError("Votre visage semble ne pas correspondre. Veuillez bien positionner votre visage.");
         }
       } else {
-        // Succès : réinitialiser le compteur et appeler le callback
         setAttemptCount(0);
         if (onVerificationComplete) {
           onVerificationComplete({
             ...verificationResult,
             status: "valide",
             session_id: localStorage.getItem("session_id"),
-            captured_photo: capturedImage, // Ajouter la photo capturée
+            captured_photo: capturedImage,
           });
         }
       }
@@ -178,38 +192,39 @@ const FaceVerification = ({
     setShowFinalMessage(false);
   };
 
-  // Styles
+  // Styles optimisés pour mobile
   const styles = {
     container: {
       background: "white",
-      borderRadius: "12px",
-      padding: "24px",
-      margin: "20px 0",
+      borderRadius: isMobile ? "16px" : "12px",
+      padding: isMobile ? "16px" : "24px",
+      margin: isMobile ? "12px 0" : "20px 0",
       boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
       fontFamily: "Arial, sans-serif",
     },
     title: {
       textAlign: "center",
-      marginBottom: "30px",
+      marginBottom: isMobile ? "20px" : "30px",
       color: "#333",
-      fontSize: "1.5rem",
+      fontSize: isMobile ? "1.2rem" : "1.5rem",
     },
     comparison: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: "20px",
+      display: "flex",
+      flexDirection: isMobile ? "column" : "row",
+      gap: isMobile ? "16px" : "20px",
       marginBottom: "24px",
     },
     box: {
+      flex: 1,
       background: "#f8f9fa",
-      padding: "16px",
+      padding: isMobile ? "12px" : "16px",
       borderRadius: "8px",
       position: "relative",
     },
     boxTitle: {
       textAlign: "center",
-      marginBottom: "16px",
-      fontSize: "16px",
+      marginBottom: "12px",
+      fontSize: isMobile ? "14px" : "16px",
       fontWeight: "bold",
       color: "#555",
     },
@@ -217,11 +232,12 @@ const FaceVerification = ({
       background: "white",
       border: "2px dashed #e0e0e0",
       borderRadius: "8px",
-      height: "300px",
+      height: isMobile ? "200px" : "300px",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       overflow: "hidden",
+      position: "relative",
     },
     referenceImage: {
       width: "100%",
@@ -233,11 +249,57 @@ const FaceVerification = ({
       height: "100%",
       objectFit: "contain",
     },
+    webcamWrapper: {
+      width: "100%",
+      height: "100%",
+      position: "relative",
+      overflow: "hidden",
+    },
     webcam: {
       width: "100%",
-      height: "300px",
+      height: "100%",
       objectFit: "cover",
-      borderRadius: "8px",
+    },
+    faceGuide: {
+      position: "absolute",
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+      width: "80%",
+      height: "80%",
+      border: "2px solid rgba(255, 255, 255, 0.5)",
+      borderRadius: "50%",
+      pointerEvents: "none",
+      zIndex: 10,
+      boxShadow: "0 0 0 9999px rgba(0,0,0,0.3)",
+    },
+    faceGuideMobile: {
+      width: "min(250px, 70%)",
+      height: "min(250px, 70%)",
+      border: "3px solid rgba(76, 175, 80, 0.8)",
+      borderRadius: "50%",
+      position: "absolute",
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+      pointerEvents: "none",
+      zIndex: 10,
+      boxShadow: "0 0 0 9999px rgba(0,0,0,0.5)",
+      animation: "pulseGuide 1.5s ease-in-out infinite",
+    },
+    guideText: {
+      position: "absolute",
+      bottom: "20px",
+      left: "50%",
+      transform: "translateX(-50%)",
+      color: "white",
+      backgroundColor: "rgba(0,0,0,0.6)",
+      padding: "8px 16px",
+      borderRadius: "20px",
+      fontSize: "12px",
+      whiteSpace: "nowrap",
+      zIndex: 11,
+      pointerEvents: "none",
     },
     placeholder: {
       textAlign: "center",
@@ -255,8 +317,8 @@ const FaceVerification = ({
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      padding: "20px",
-      background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)",
+      padding: isMobile ? "12px" : "20px",
+      background: "linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%)",
       zIndex: 10,
     },
     captureMain: {
@@ -266,8 +328,8 @@ const FaceVerification = ({
       gap: "8px",
     },
     btnCaptureRound: {
-      width: "66px",
-      height: "66px",
+      width: isMobile ? "56px" : "66px",
+      height: isMobile ? "56px" : "66px",
       borderRadius: "50%",
       border: "4px solid white",
       background: "transparent",
@@ -281,23 +343,23 @@ const FaceVerification = ({
     captureInner: {
       width: "100%",
       height: "100%",
-      border_radius: "50%",
+      borderRadius: "50%",
       background: "white",
     },
     captureText: {
       color: "white",
-      fontSize: "12px",
+      fontSize: isMobile ? "10px" : "12px",
       fontWeight: "500",
       textShadow: "0 1px 2px rgba(0,0,0,0.5)",
     },
     btnActionSmall: {
-      width: "40px",
-      height: "40px",
+      width: isMobile ? "36px" : "40px",
+      height: isMobile ? "36px" : "40px",
       borderRadius: "50%",
       background: "rgba(255, 255, 255, 0.2)",
       border: "1px solid rgba(255, 255, 255, 0.3)",
       color: "white",
-      fontSize: "18px",
+      fontSize: isMobile ? "16px" : "18px",
       cursor: "pointer",
       display: "flex",
       alignItems: "center",
@@ -311,10 +373,10 @@ const FaceVerification = ({
       marginTop: "16px",
     },
     button: {
-      padding: "10px 20px",
+      padding: isMobile ? "10px 16px" : "10px 20px",
       border: "none",
       borderRadius: "6px",
-      fontSize: "14px",
+      fontSize: isMobile ? "13px" : "14px",
       fontWeight: "500",
       cursor: "pointer",
       transition: "all 0.3s ease",
@@ -340,8 +402,8 @@ const FaceVerification = ({
       background: "#4CAF50",
       color: "white",
       width: "100%",
-      padding: "12px",
-      fontSize: "16px",
+      padding: isMobile ? "10px" : "12px",
+      fontSize: isMobile ? "14px" : "16px",
       fontWeight: "600",
       marginTop: "16px",
     },
@@ -449,7 +511,6 @@ const FaceVerification = ({
     },
   };
 
-  // Déterminer le style du résultat en fonction du statut
   const getResultStyle = () => {
     if (!result) return {};
     if (showFinalMessage) return styles.pending;
@@ -458,6 +519,21 @@ const FaceVerification = ({
 
   return (
     <div style={styles.container}>
+      <style>
+        {`
+          @keyframes pulseGuide {
+            0%, 100% {
+              transform: translate(-50%, -50%) scale(1);
+              opacity: 0.8;
+            }
+            50% {
+              transform: translate(-50%, -50%) scale(1.05);
+              opacity: 1;
+            }
+          }
+        `}
+      </style>
+      
       <h2 style={styles.title}>
         Vérification faciale {useAdvanced && "(Avancée)"}
       </h2>
@@ -485,15 +561,23 @@ const FaceVerification = ({
         {/* Photo à vérifier */}
         <div style={styles.box}>
           <h4 style={styles.boxTitle}>Photo à vérifier</h4>
-          <div style={styles.imageContainer}>
+          <div style={styles.imageContainer} ref={containerRef}>
             {isCameraActive ? (
-              <Webcam
-                audio={false}
-                ref={webcamRef}
-                screenshotFormat="image/jpeg"
-                videoConstraints={getVideoConstraints()}
-                style={styles.webcam}
-              />
+              <div style={styles.webcamWrapper}>
+                <Webcam
+                  audio={false}
+                  ref={webcamRef}
+                  screenshotFormat="image/jpeg"
+                  videoConstraints={getVideoConstraints()}
+                  style={styles.webcam}
+                  mirrored={true}
+                />
+                {/* Guide pour positionner le visage */}
+                <div style={isMobile ? styles.faceGuideMobile : styles.faceGuide}></div>
+                <div style={styles.guideText}>
+                  {isMobile ? "Placez votre visage dans le cercle" : "Centre du visage"}
+                </div>
+              </div>
             ) : capturedImage ? (
               <img
                 src={capturedImage}
@@ -506,55 +590,57 @@ const FaceVerification = ({
                 <p>Aucune photo sélectionnée</p>
               </div>
             )}
+
+            {isCameraActive ? (
+              <div style={styles.controlsOverlay}>
+                <button
+                  onClick={stopCamera}
+                  style={styles.btnActionSmall}
+                  title="Annuler"
+                >
+                  ✕
+                </button>
+
+                <div style={styles.captureMain}>
+                  <button
+                    onClick={captureImage}
+                    disabled={isLoading}
+                    style={{
+                      ...styles.btnCaptureRound,
+                      ...(isLoading ? styles.disabledButton : {}),
+                    }}
+                    title="Capturer"
+                  >
+                    <div style={styles.captureInner}></div>
+                  </button>
+                  <span style={styles.captureText}>Capturer</span>
+                </div>
+
+                <div style={{ width: isMobile ? "36px" : "40px" }}></div>
+              </div>
+            ) : capturedImage && !showFinalMessage ? (
+              <div style={styles.controlsOverlay}>
+                <div style={{ width: isMobile ? "36px" : "40px" }}></div>
+                <div style={styles.captureMain}>
+                  <button
+                    onClick={() => {
+                      setCapturedImage(null);
+                      setResult(null);
+                      setError(null);
+                    }}
+                    style={styles.btnCaptureRound}
+                    title="Reprendre"
+                  >
+                    <div style={{ ...styles.captureInner, background: "rgba(255,255,255,0.7)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      🔄
+                    </div>
+                  </button>
+                  <span style={styles.captureText}>Reprendre</span>
+                </div>
+                <div style={{ width: isMobile ? "36px" : "40px" }}></div>
+              </div>
+            ) : null}
           </div>
-
-          {isCameraActive ? (
-            <div style={styles.controlsOverlay}>
-              <button
-                onClick={stopCamera}
-                style={styles.btnActionSmall}
-                title="Annuler"
-              >
-                ✕
-              </button>
-
-              <div style={styles.captureMain}>
-                <button
-                  onClick={captureImage}
-                  disabled={isLoading}
-                  style={{
-                    ...styles.btnCaptureRound,
-                    ...(isLoading ? styles.disabledButton : {}),
-                  }}
-                  title="Capturer"
-                >
-                  <div style={styles.captureInner}></div>
-                </button>
-                <span style={styles.captureText}>Capturer</span>
-              </div>
-
-              <div style={{ width: "40px" }}></div> {/* Spacer pour l'alignement */}
-            </div>
-          ) : capturedImage && !showFinalMessage ? (
-            <div style={styles.controlsOverlay}>
-              <div style={{ width: "40px" }}></div>
-              <div style={styles.captureMain}>
-                <button
-                  onClick={() => {
-                    setCapturedImage(null);
-                    setResult(null);
-                    setError(null);
-                  }}
-                  style={styles.btnCaptureRound}
-                  title="Reprendre"
-                >
-                  <div style={{ ...styles.captureInner, background: "rgba(255,255,255,0.7)" }}>🔄</div>
-                </button>
-                <span style={styles.captureText}>Reprendre</span>
-              </div>
-              <div style={{ width: "40px" }}></div>
-            </div>
-          ) : null}
         </div>
       </div>
 
@@ -581,6 +667,17 @@ const FaceVerification = ({
             >
               🎥 Ouvrir la caméra
             </button>
+            {/* <button
+              onClick={() => fileInputRef.current.click()}
+              disabled={isLoading}
+              style={{
+                ...styles.button,
+                ...styles.secondaryButton,
+                ...(isLoading ? styles.disabledButton : {}),
+              }}
+            >
+              📁 Choisir une photo
+            </button> */}
           </div>
         )}
       </div>
@@ -629,7 +726,7 @@ const FaceVerification = ({
           <h3 style={{ margin: "0 0 10px 0", color: "#6a1b9a" }}>
             📋 Demande en cours
           </h3>
-          <p style={{ margin: 0, fontSize: "1.1rem" }}>
+          <p style={{ margin: 0, fontSize: isMobile ? "1rem" : "1.1rem" }}>
             Votre demande est en cours de validation. Nos services vous
             recontacteront.
           </p>

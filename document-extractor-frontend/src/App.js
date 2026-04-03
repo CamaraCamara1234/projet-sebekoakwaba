@@ -43,15 +43,15 @@ function App() {
     });
 
     if (hasData) {
-      console.log('📦 Données extraites de l\'URL:', data);
+      // console.log('📦 Données extraites de l\'URL:', data);
       setExternalData(data);
     }
   }, []);
 
   // Étape 1 : Soumission du formulaire unifié
   const handleFormSubmit = async ({ formData: userData, files }) => {
-    console.log('Formulaire soumis:', userData);
-    console.log('Fichiers uploadés:', files);
+    // console.log('Formulaire soumis:', userData);
+    // console.log('Fichiers uploadés:', files);
 
     setFormData(userData);
     setUploadedFiles(files);
@@ -133,7 +133,7 @@ function App() {
       }
     };
 
-    console.log('✅ Données mises à jour avec statut:', updatedReviewData);
+    // console.log('✅ Données mises à jour avec statut:', updatedReviewData);
 
     setReviewData(updatedReviewData);
     setFaceVerificationResult(result);
@@ -148,7 +148,7 @@ function App() {
   };
 
   // Étape 4 : Finalisation
-  const handleFinalizeRegistration = () => {
+  const handleFinalizeRegistration = async () => {
     if (!externalData || !externalData.id) {
       setError("ID utilisateur manquant (données externes non chargées)");
       return;
@@ -160,18 +160,23 @@ function App() {
     };
 
     console.log('✅ Données finales:', finalData);
-    updateUserStatus(finalData);
     setIsProcessing(true);
 
-    setTimeout(() => {
+    try {
+      await updateUserStatus(finalData);
+      await cleanDirectories();
       setRegistrationComplete(true);
-      setIsProcessing(false);
       alert('✅ Inscription réussie !');
+    } catch (err) {
+      console.error("Erreur finalisation:", err);
+      setError("Erreur lors de la communication avec le serveur principal");
+    } finally {
+      setIsProcessing(false);
+    }
 
-      setTimeout(() => {
-        resetRegistration();
-      }, 3000);
-    }, 2000);
+    setTimeout(() => {
+      resetRegistration();
+    }, 3000);
   };
 
   // Réinitialisation complète avec nettoyage de la session
@@ -187,7 +192,6 @@ function App() {
     setRegistrationComplete(false);
     setExtractionKey(prev => prev + 1);
 
-    clearSessionId();
     cleanDirectories();
     console.log('Session réinitialisée');
   };
@@ -325,9 +329,9 @@ function App() {
             <div className="logo-section">
               <div className="logo-icon">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <div>

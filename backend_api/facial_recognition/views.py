@@ -99,7 +99,7 @@ def verify_faces(request):
             'threshold': DLIB_THRESHOLD,
             'confidence': similarity_percent,
             'model': 'ArcFace',
-            'uploaded_image': settings.MEDIA_URL + "extracted_regions/photo_capture.png",
+            'uploaded_image': settings.MEDIA_URL + f"extracted_regions/{session_id}/photo_capture.png",
             'photo_capture_base64': image_to_base64(img2_path)
         })
 
@@ -284,8 +284,12 @@ def clear_session_files(session_id):
     for folder in dirs_to_clear:
         folder_path = os.path.join(settings.MEDIA_ROOT, folder)
         
-        if folder == 'extracted_regions':
-            # Pour extracted_regions, on a un sous-dossier par session
+        if not os.path.exists(folder_path):
+            logger.info(f"Dossier {folder} non trouvé, skip.")
+            continue
+
+        if folder == 'extracted_regions' or folder == 'temp':
+            # Pour ces dossiers, on a un sous-dossier par session
             session_folder = os.path.join(folder_path, session_id)
             if os.path.exists(session_folder):
                 try:
@@ -293,45 +297,26 @@ def clear_session_files(session_id):
                     cleared.append(f"{folder}/{session_id}")
                     logger.info(f"Session {session_id} - Dossier supprimé: {session_folder}")
                 except Exception as e:
-                    errors.append(f"Erreur dans {folder}/{session_id}: {str(e)}")
+                    errors.append(f"Erreur suppression {folder}/{session_id}: {str(e)}")
             else:
-                logger.info(f"Session {session_id} - Dossier non trouvé: {session_folder}")
+                logger.debug(f"Session {session_id} - Dossier non trouvé dans {folder}")
         
-        elif folder == 'temp':
-            # Pour temp, on a un sous-dossier par session
-            session_temp = os.path.join(folder_path, session_id)
-            if os.path.exists(session_temp):
-                try:
-                    shutil.rmtree(session_temp)
-                    cleared.append(f"{folder}/{session_id}")
-                    logger.info(f"Session {session_id} - Dossier temp supprimé: {session_temp}")
-                except Exception as e:
-                    errors.append(f"Erreur dans {folder}/{session_id}: {str(e)}")
-            else:
-                logger.info(f"Session {session_id} - Dossier temp non trouvé: {session_temp}")
-        
-        else:  # preprocessed_imgs
-            if os.path.exists(folder_path):
-                try:
-                    # Supprimer uniquement les fichiers qui commencent par session_id
-                    deleted_count = 0
-                    for filename in os.listdir(folder_path):
-                        if filename.startswith(session_id) and filename.lower().endswith('.jpg'):
-                            file_path = os.path.join(folder_path, filename)
-                            os.unlink(file_path)
-                            deleted_count += 1
-                            logger.info(f"Session {session_id} - Fichier supprimé: {filename}")
-                    
-                    if deleted_count > 0:
-                        cleared.append(f"{folder} ({deleted_count} fichiers)")
-                        logger.info(f"Session {session_id} - {deleted_count} fichiers supprimés dans {folder}")
-                    else:
-                        logger.info(f"Session {session_id} - Aucun fichier trouvé dans {folder}")
-                        
-                except Exception as e:
-                    errors.append(f"Erreur dans {folder}: {str(e)}")
-            else:
-                errors.append(f"Dossier non trouvé: {folder_path}")
+        elif folder == 'preprocessed_imgs':
+            try:
+                # Supprimer uniquement les fichiers qui commencent par session_id_
+                deleted_count = 0
+                prefix = f"{session_id}_"
+                for filename in os.listdir(folder_path):
+                    if filename.startswith(prefix) and filename.lower().endswith('.jpg'):
+                        file_path = os.path.join(folder_path, filename)
+                        os.unlink(file_path)
+                        deleted_count += 1
+                
+                if deleted_count > 0:
+                    cleared.append(f"{folder} ({deleted_count} fichiers)")
+                    logger.info(f"Session {session_id} - {deleted_count} fichiers supprimés dans {folder}")
+            except Exception as e:
+                errors.append(f"Erreur dans {folder}: {str(e)}")
 
     status = "success" if not errors else "partial"
     return JsonResponse({

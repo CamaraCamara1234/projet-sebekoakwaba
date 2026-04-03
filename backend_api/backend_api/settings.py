@@ -24,9 +24,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-^(_3!0z=n(9i4$fz!^rtckm6g1v)zu_2q65m@)i0^823-^i31#'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
+# ALLOWED_HOSTS = ["checkid.akwabasebeko.com","127.0.0.1:8000"]
 ALLOWED_HOSTS = ["*"]
+
+
+CORS_ALLOW_PRIVATE_NETWORK = True
 
 
 # Application definition
@@ -131,8 +135,8 @@ STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Ajouter à la fin du fichier
-PREPROCESSED_IMGS_DIR = os.path.join(BASE_DIR, 'media\preprocessed_imgs')
-REGIONS_IMGS_DIR = os.path.join(BASE_DIR, 'media\extracted_regions')
+PREPROCESSED_IMGS_DIR = os.path.join(BASE_DIR, 'media/preprocessed_imgs')
+REGIONS_IMGS_DIR = os.path.join(BASE_DIR, 'media/extracted_regions')
 
 # backend_api/settings.py
 
@@ -153,6 +157,8 @@ MODEL_DIRS = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://jonna-unstrung-sickeningly.ngrok-free.dev",
+    "https://projet-sebekoakwaba.vercel.app"
 ]
 
 CORS_ALLOW_METHODS = [
@@ -178,6 +184,11 @@ CORS_ALLOW_HEADERS = [
 
 # Pour le développement seulement :
 CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+
+# Augmenter la taille maximale des uploads (20 Mo)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 52428800  # 50MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 52428800
 
 # DATABASES = {
 #     'default': {
