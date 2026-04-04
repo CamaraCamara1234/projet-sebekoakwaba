@@ -216,6 +216,7 @@ def finalisation_process(request):
         # --- Appel API Externe pour mettre à jour l'état de l'utilisateur ---
         user_id = data.get('user_id')
         statut_verification = data.get('statut_verification', "en_cours")
+        print(f"Session {session_id} - Appel API externe (user {user_id}): {statut_verification}")
 
         if user_id:
             try:
@@ -224,7 +225,7 @@ def finalisation_process(request):
                 
                 # Mapping : valide -> 1 (activé), en_cours -> 2 (en attente)
                 state = 1 if statut_verification == "valide" else 2
-                
+                print(f"Session {session_id} - Appel API externe (user {user_id}): {state}")
                 headers = {
                     'X-API-KEY': api_key,
                     'Accept': 'application/json',
@@ -232,7 +233,7 @@ def finalisation_process(request):
                 payload = {'state': state}
                 
                 ext_response = requests.post(url, headers=headers, json=payload, timeout=10)
-                # print(f"Session {session_id} - API externe (user {user_id}): {ext_response.status_code}")
+                print(f"Session {session_id} - API externe (user {user_id}): {ext_response.status_code}")
                 
                 response_data["api_extern_status"] = ext_response.status_code
                 try:
