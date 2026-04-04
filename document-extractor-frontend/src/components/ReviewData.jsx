@@ -317,9 +317,6 @@ const ReviewData = ({
             <span className="section-icon">🔗</span>
             Données de référence (Système externe)
           </h3>
-          {/* <p className="section-note">
-            Ces informations ont été transmises par le système appelant (ID: {externalData.id || 'N/A'})
-          </p> */}
           <div className="external-data-grid">
             {Object.entries(externalData)
               .filter(([key]) => key !== 'id')

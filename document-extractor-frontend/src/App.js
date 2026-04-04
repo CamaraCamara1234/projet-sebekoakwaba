@@ -126,7 +126,7 @@ function App() {
 
   // Étape 3 : Vérification faciale
   const handleFaceVerificationComplete = (result) => {
-    console.log('Vérification faciale:', result);
+    // console.log('Vérification faciale:', result);
 
     const updatedReviewData = {
       ...reviewData,
