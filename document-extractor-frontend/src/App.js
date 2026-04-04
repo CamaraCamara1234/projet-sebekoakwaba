@@ -70,7 +70,7 @@ function App() {
         formDataObj.append('image1', files[0]);
         formDataObj.append('image2', files[1]);
         const result = await extractDualDocuments(formDataObj);
-        console.log("Résultat extraction:", result);
+        // console.log("Résultat extraction:", result);
         setExtractionResults(result);
         setExtractionKey(prev => prev + 1);
       }
@@ -87,19 +87,29 @@ function App() {
 
   // Étape 2 : Confirmation des données après revue
   const handleReviewConfirm = (confirmedData, validationResults = null) => {
-    console.log('Données confirmées:', confirmedData);
-    console.log('Résultats validation:', validationResults);
+    // console.log('Données confirmées:', confirmedData);
+    // console.log('Résultats validation:', validationResults);
 
     setReviewData(confirmedData);
     setValidationResult(validationResults);
 
     if (validationResults?.data_verified) {
       const allVerified = Object.values(validationResults.data_verified).every(v => v.verified);
-      console.log('Toutes les données sont-elles validées?', allVerified);
+      
+      // Double vérification avec les données externes (Nom/Prénom)
+      const nomMatch = !externalData?.nom || 
+        (confirmedData.nom && confirmedData.nom.trim().toLowerCase() === externalData.nom.trim().toLowerCase());
+      const prenomMatch = !externalData?.prenom || 
+        (confirmedData.prenom && confirmedData.prenom.trim().toLowerCase() === externalData.prenom.trim().toLowerCase());
 
-      if (allVerified) {
+      console.log('Toutes les données sont-elles validées?', allVerified);
+      console.log('Match données externes?', nomMatch && prenomMatch);
+
+      if (allVerified && nomMatch && prenomMatch) {
         setCurrentStep(3);
         setError(null);
+      } else if (!nomMatch || !prenomMatch) {
+        setError('Le nom ou le prénom ne correspond pas aux données du système externe.');
       } else {
         setError('Certaines données doivent être corrigées manuellement avant de continuer');
       }

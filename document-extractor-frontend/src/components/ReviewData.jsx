@@ -49,6 +49,7 @@ const ReviewData = ({
   const [validationResult, setValidationResult] = useState(null);
   const [isValidating, setIsValidating] = useState(false);
   const [showCorrections, setShowCorrections] = useState(false);
+  const [externalError, setExternalError] = useState(null);
 
   // Extraire les items du document (sans les champs arabes)
   const extractedItems = extractedData?.extracted_data?.filter(
@@ -70,6 +71,7 @@ const ReviewData = ({
 
   const handleConfirmWithValidation = async () => {
     setIsValidating(true);
+    setExternalError(null);
 
     try {
       // Préparer les données pour la validation
@@ -91,14 +93,14 @@ const ReviewData = ({
         formDataToSend.append('data_mrz', JSON.stringify({}));
       }
 
-      console.log("📤 Envoi pour validation:", {
-        data: editedData,
-        mrz: extractedData?.mrz_data?.[0]
-      });
+      // console.log("📤 Envoi pour validation:", {
+      //   data: editedData,
+      //   mrz: extractedData?.mrz_data?.[0]
+      // });
 
       // Envoyer pour validation
       const result = await validationData(formDataToSend);
-      console.log("📥 Résultat validation:", result);
+      // console.log("📥 Résultat validation:", result);
 
       setValidationResult(result);
 
@@ -116,6 +118,22 @@ const ReviewData = ({
             validatedData[key] = value.value;
           }
         });
+
+        // Vérifier la correspondance avec les données externes
+        if (externalData) {
+          const nomMatch = !externalData.nom || 
+            (validatedData.nom && validatedData.nom.trim().toLowerCase() === externalData.nom.trim().toLowerCase());
+          const prenomMatch = !externalData.prenom || 
+            (validatedData.prenom && validatedData.prenom.trim().toLowerCase() === externalData.prenom.trim().toLowerCase());
+
+          if (!nomMatch || !prenomMatch) {
+            let errorMsg = "Divergence avec les données du système :";
+            if (!nomMatch) errorMsg += ` le nom "${validatedData.nom}" ne correspond pas à "${externalData.nom}".`;
+            if (!prenomMatch) errorMsg += ` le prénom "${validatedData.prenom}" ne correspond pas à "${externalData.prenom}".`;
+            setExternalError(errorMsg);
+            return;
+          }
+        }
 
         // Appeler onConfirm avec les données validées et le résultat
         onConfirm(validatedData, result);
@@ -141,7 +159,23 @@ const ReviewData = ({
 
     } catch (error) {
       console.error("❌ Erreur lors de la validation:", error);
-      // En cas d'erreur, on passe quand même avec les données éditées
+      
+      // Même en cas d'erreur API, on vérifie la correspondance externe avant de laisser passer
+      if (externalData) {
+        const nomMatch = !externalData.nom || 
+          (editedData.nom && editedData.nom.trim().toLowerCase() === externalData.nom.trim().toLowerCase());
+        const prenomMatch = !externalData.prenom || 
+          (editedData.prenom && editedData.prenom.trim().toLowerCase() === externalData.prenom.trim().toLowerCase());
+
+        if (!nomMatch || !prenomMatch) {
+          let errorMsg = "Impossible de valider car les données ne correspondent pas au système :";
+          if (!nomMatch) errorMsg += ` le nom "${editedData.nom}" vs "${externalData.nom}".`;
+          if (!prenomMatch) errorMsg += ` le prénom "${editedData.prenom}" vs "${externalData.prenom}".`;
+          setExternalError(errorMsg);
+          return;
+        }
+      }
+      
       onConfirm(editedData);
     } finally {
       setIsValidating(false);
@@ -244,6 +278,17 @@ const ReviewData = ({
           </p>
         )}
       </div>
+
+      {/* Message d'erreur de correspondance externe */}
+      {externalError && (
+        <div className="validation-summary error">
+          <h4>❌ Erreur de correspondance</h4>
+          <p>{externalError}</p>
+          <p className="validation-help error">
+            Veuillez corriger le Nom et le Prénom pour qu'ils correspondent exactement aux données attendues par le système.
+          </p>
+        </div>
+      )}
 
       {/* Message de validation si disponible */}
       {validationResult && (
@@ -519,13 +564,13 @@ const ReviewData = ({
                 'Re-valider'
               )}
             </button>
-            <button
+            {/* <button
               onClick={handleForceConfirm}
               className="btn btn-warning"
               disabled={isProcessing || isValidating}
             >
               Confirmer manuellement
-            </button>
+            </button> */}
           </div>
         ) : (
           // Validation initiale ou tout est validé
@@ -598,6 +643,11 @@ const ReviewData = ({
           border-left-color: #FF9800;
         }
 
+        .validation-summary.error {
+          border-left-color: #f44336;
+          background-color: #fffde7;
+        }
+
         .validation-summary h4 {
           margin: 0 0 0.5rem;
           color: #333;
@@ -614,6 +664,11 @@ const ReviewData = ({
           background: #fff3e0;
           padding: 0.5rem;
           border-radius: 4px;
+        }
+
+        .validation-help.error {
+          color: #f44336;
+          background: #ffebee;
         }
 
         .review-grid {
