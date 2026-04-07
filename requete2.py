@@ -12,7 +12,7 @@ headers = {
 
 # ✅ Changer state ici : 0, 1 ou 2
 data = {
-    'state': 1  # 0 = désactivé, 1 = activé, 2 = En attente
+    'state': 0  # 0 = désactivé, 1 = activé, 2 = En attente
 }
 
 response = requests.post(url, headers=headers, json=data)

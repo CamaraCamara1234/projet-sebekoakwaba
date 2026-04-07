@@ -23,8 +23,9 @@ document-extractor-frontend/
 .vscode/
 .idea/
 
-# Large binaries/models that should be downloaded or mounted
-*.onnx
-*.weights
-*.pt
-*.pth
+# Large binaries/models (commented out to include them in the image)
+# *.onnx
+# *.weights
+# *.pt
+# *.pth
+# *.h5

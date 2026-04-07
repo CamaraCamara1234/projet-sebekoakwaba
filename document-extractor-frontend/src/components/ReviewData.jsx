@@ -1,6 +1,6 @@
 // components/ReviewData.jsx
-import React, { useState, useEffect } from 'react';
-import { getImageUrl, validationData, getSessionId } from '../services/api';
+import React, { useState} from 'react';
+import { validationData, getSessionId, cleanDirectories } from '../services/api';
 
 const ReviewData = ({
   extractedData,
@@ -131,6 +131,7 @@ const ReviewData = ({
             if (!nomMatch) errorMsg += ` le nom "${validatedData.nom}" ne correspond pas à "${externalData.nom}".`;
             if (!prenomMatch) errorMsg += ` le prénom "${validatedData.prenom}" ne correspond pas à "${externalData.prenom}".`;
             setExternalError(errorMsg);
+            cleanDirectories()
             return;
           }
         }
