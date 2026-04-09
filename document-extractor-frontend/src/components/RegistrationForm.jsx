@@ -133,7 +133,7 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
                   <span className="badge">PNG</span>
                   <span className="badge">JPEG</span>
                 </div>
-                <p className="upload-hint">Recto et verso recommandés</p>
+                <p className="upload-hint">Recto et verso recommandés pour la carte séjour et la CNI</p>
               </div>
             ) : (
               <div className="file-previews">
@@ -165,7 +165,7 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
                     <div className="file-info">
                       <span className="file-name">{file.name.length > 15 ? file.name.substring(0, 12) + '...' : file.name}</span>
                       <span className="file-type-badge">
-                        {index === 0 ? 'RECTO' : 'VERSO'}
+                        {index === 0 ? 'FACE 1' : 'FAACE 2'}
                       </span>
                     </div>
                   </div>
@@ -184,7 +184,7 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                       </svg>
                     </div>
-                    <span>Ajouter le verso</span>
+                    <span>Face 2 (si CNI ou CARTE SEJOUR)</span>
                   </div>
                 )}
               </div>
