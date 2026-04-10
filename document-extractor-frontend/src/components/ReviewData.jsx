@@ -2,6 +2,16 @@
 import React, { useState} from 'react';
 import { validationData, getSessionId, cleanDirectories } from '../services/api';
 
+const normalizeString = (str) => {
+  if (!str) return '';
+  return str
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+};
+
+
 const ReviewData = ({
   extractedData,
   formData,
@@ -16,9 +26,7 @@ const ReviewData = ({
 
     if (extractedData?.extracted_data) {
       extractedData.extracted_data.forEach(item => {
-        // Ignorer les champs qui se terminent par _ar (arabe)
         if (!item.label.endsWith('_ar')) {
-          // Utiliser directement le label comme clé
           initialData[item.label] = item.text;
         }
       });
@@ -122,9 +130,9 @@ const ReviewData = ({
         // Vérifier la correspondance avec les données externes
         if (externalData) {
           const nomMatch = !externalData.nom || 
-            (validatedData.nom && validatedData.nom.trim().toLowerCase() === externalData.nom.trim().toLowerCase());
+            normalizeString(validatedData.nom) === normalizeString(externalData.nom);
           const prenomMatch = !externalData.prenom || 
-            (validatedData.prenom && validatedData.prenom.trim().toLowerCase() === externalData.prenom.trim().toLowerCase());
+            normalizeString(validatedData.prenom) === normalizeString(externalData.prenom);
 
           if (!nomMatch || !prenomMatch) {
             let errorMsg = "Divergence avec les données du système :";
@@ -164,9 +172,9 @@ const ReviewData = ({
       // Même en cas d'erreur API, on vérifie la correspondance externe avant de laisser passer
       if (externalData) {
         const nomMatch = !externalData.nom || 
-          (editedData.nom && editedData.nom.trim().toLowerCase() === externalData.nom.trim().toLowerCase());
+          normalizeString(editedData.nom) === normalizeString(externalData.nom);
         const prenomMatch = !externalData.prenom || 
-          (editedData.prenom && editedData.prenom.trim().toLowerCase() === externalData.prenom.trim().toLowerCase());
+          normalizeString(editedData.prenom) === normalizeString(externalData.prenom);
 
         if (!nomMatch || !prenomMatch) {
           let errorMsg = "Impossible de valider car les données ne correspondent pas au système :";
@@ -348,7 +356,7 @@ const ReviewData = ({
               
               // Comparaison avec les données externes (URL)
               const referenceValue = externalData?.[field.key];
-              const hasDiscrepancy = referenceValue && currentValue && referenceValue.toLowerCase() !== currentValue.toLowerCase();
+              const hasDiscrepancy = referenceValue && currentValue && normalizeString(referenceValue) !== normalizeString(currentValue);
 
               // Déterminer la classe CSS en fonction de la validation et des données externes
               let cardClass = 'review-card';

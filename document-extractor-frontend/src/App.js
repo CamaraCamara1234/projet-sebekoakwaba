@@ -12,6 +12,15 @@ import {
 import './assets/styles/main.css';
 import ResultsDisplay from './components/ResultsDisplay';
 
+const normalizeString = (str) => {
+  if (!str) return '';
+  return str
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+};
+
 function App() {
   // États (inchangés)
   const [currentStep, setCurrentStep] = useState(1);
@@ -98,9 +107,9 @@ function App() {
       
       // Double vérification avec les données externes (Nom/Prénom)
       const nomMatch = !externalData?.nom || 
-        (confirmedData.nom && confirmedData.nom.trim().toLowerCase() === externalData.nom.trim().toLowerCase());
+        normalizeString(confirmedData.nom) === normalizeString(externalData.nom);
       const prenomMatch = !externalData?.prenom || 
-        (confirmedData.prenom && confirmedData.prenom.trim().toLowerCase() === externalData.prenom.trim().toLowerCase());
+        normalizeString(confirmedData.prenom) === normalizeString(externalData.prenom);
 
       console.log('Toutes les données sont-elles validées?', allVerified);
       console.log('Match données externes?', nomMatch && prenomMatch);
