@@ -165,7 +165,7 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
                     <div className="file-info">
                       <span className="file-name">{file.name.length > 15 ? file.name.substring(0, 12) + '...' : file.name}</span>
                       <span className="file-type-badge">
-                        {index === 0 ? 'FACE 1' : 'FAACE 2'}
+                        {index === 0 ? 'FACE 1' : 'FACE 2'}
                       </span>
                     </div>
                   </div>

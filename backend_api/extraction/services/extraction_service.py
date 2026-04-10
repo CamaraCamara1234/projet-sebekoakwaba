@@ -2,7 +2,6 @@ import os
 import cv2
 import pytesseract
 import numpy as np
-import easyocr
 import re
 from paddleocr import PaddleOCR
 from ultralytics import YOLO
@@ -12,6 +11,7 @@ import logging
 from django.conf import settings
 
 logging.basicConfig(level=logging.INFO)
+# Service de gestion de l'OCR et de l'extraction
 logger = logging.getLogger(__name__)
 
 
@@ -40,7 +40,7 @@ class ExtractZonesTexts:
         self.session_id = session_id
         self.doc_type = doc_type
 
-        self.easyocr_reader = easyocr.Reader(['fr', 'en'], gpu=False)
+        # self.easyocr_reader = easyocr.Reader(['fr', 'en'], gpu=False)
         self.paddle_ocr = PaddleOCR(use_angle_cls=True, lang='en')
 
         self._create_directories()
@@ -118,22 +118,9 @@ class ExtractZonesTexts:
     def _ocr_tesseract(self, image):
         text = pytesseract.image_to_string(
             image, lang='fra', config='--psm 6 --oem 3')
-        return self._clean_text(text)
+        return self._clean_text(text), 1.0
 
-    def _ocr_easyocr(self, image):
-        results = self.easyocr_reader.readtext(image)
-        if not results:
-            return "", 0
-        texts, confs = zip(*[(text, conf) for (_, text, conf) in results])
-        return self._clean_text(" ".join(texts)), float(np.mean(confs))
-
-    def _hybrid_ocr(self, image):
-        tess_text = self._ocr_tesseract(image)
-        easy_text, easy_conf = self._ocr_easyocr(image)
-        if easy_conf > 0.6 and len(easy_text) >= len(tess_text):
-            return easy_text, easy_conf, "easyocr"
-        else:
-            return tess_text, 1.0, "tesseract"
+    # Les anciennes méthodes _ocr_easyocr et _hybrid_ocr ont été retirées car EasyOCR a été supprimé.
 
     # -----------------------------
     # CHECK REQUIRED FIELDS
@@ -213,7 +200,8 @@ class ExtractZonesTexts:
             text, conf = self._ocr_paddle(image)
             engine = "paddleocr"
         else:
-            text, conf, engine = self._hybrid_ocr(image)
+            text, conf = self._ocr_tesseract(image)
+            engine = "tesseract"
 
         logger.info(
             f"Session {self.session_id} - OCR ({engine}) pour {label}: {text[:50]}")
