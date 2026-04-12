@@ -82,9 +82,7 @@ const formatLabel = (label) => {
     sexe: "Sexe",
     adresse: "Adresse",
     nini: "Numero d'identification nationale",
-    motif_sejour: "Motif de séjour",
-    pere: "pere",
-    mere: "mere",
+    motif_sejour: "Motif de séjour"
   };
 
   return labels[label] || label;

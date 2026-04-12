@@ -164,6 +164,13 @@ def handle_ocr_processing(list_files, session_id):
         photo_exists = 'photo' in list_regions_name
         code_exists = 'code' in list_regions_name
 
+        # Vérification stricte du MRZ : si le document exige un MRZ mais qu'il est illisible ou absent
+        if 'code' in all_required_labels and len(mrz_data) == 0:
+            return JsonResponse({
+                "status": "error",
+                "message": "Le code MRZ n'est pas bien lisible. Veuillez reprendre la photo en vous assurant qu'elle soit bien nette, sans pixelisation et sans reflets."
+            }, status=400)
+
         # Construire les URLs
         response_data = {
             "status": "success",

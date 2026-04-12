@@ -160,21 +160,23 @@ class ExtractZonesTexts:
             label = result.names[int(box.cls)]
             confidence = float(box.conf)
             if label == "code":
-                roi = img[y1:y2+10, x1:x2]
+                roi = img[y1:y2+20, x1:x2]
             else:
                 roi = img[y1:y2, x1:x2]
             filename = f"{label}.png"
             output_path = os.path.join(self.extracted_dir, filename)
 
             if label in special_labels:
+                if label == "photo":
+                    # Lissage du bruit (Denoising) avec un filtre bilatéral pour conserver la netteté des traits du visage
+                    roi = cv2.bilateralFilter(roi, d=9, sigmaColor=75, sigmaSpace=75)
+                
                 cv2.imwrite(output_path, roi)
                 special_regions.append((label, output_path, confidence))
                 continue
 
-            roi_gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-            roi_gray = cv2.cvtColor(roi_gray, cv2.COLOR_GRAY2BGR)
-            roi_expanded = self._expand_roi(roi_gray, percent=0.30)
-            cv2.imwrite(output_path, roi_expanded)
+            # Sauvegarder la zone extraite dans sa qualité d'origine sans redimensionnement ni conversion gris
+            cv2.imwrite(output_path, roi)
             extracted_regions.append((label, output_path, confidence))
 
         return special_regions + extracted_regions

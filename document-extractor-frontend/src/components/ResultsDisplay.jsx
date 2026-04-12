@@ -4,9 +4,9 @@ import DocumentPreview from './DocumentPreview';
 import DataTable from './DataTable';
 import MRZSection from './MRZSection';
 
-const ResultsDisplay = ({ 
-  data, 
-  processingTime, 
+const ResultsDisplay = ({
+  data,
+  processingTime,
   extractionKey,
   onConfirm,
   showConfirmButton = true,
@@ -20,7 +20,7 @@ const ResultsDisplay = ({
   // Déterminer le message à afficher selon le statut
   const getStatusMessage = () => {
     if (!isReviewData) return null;
-    
+
     if (data.statut_verification === 'valide') {
       return {
         title: "Félicitations !",
@@ -45,14 +45,14 @@ const ResultsDisplay = ({
     if (isReviewData) {
       // Convertir l'objet reviewData en tableau pour DataTable
       return Object.entries(data)
-        .filter(([key]) => !key.startsWith('photo_') && !key.includes('_url') && !key.includes('date_verification') && key !== 'statut_verification' && key !== 'images_base64')
+        .filter(([key]) => !key.startsWith('photo_') && !key.includes('_url') && !key.includes('date_verification') && key !== 'statut_verification' && key !== 'images_base64' && key !== 'session_id')
         .map(([key, value]) => ({
           label: key,
           text: value,
           confidence: 100 // Valeur par défaut pour les données validées
         }));
     }
-    return data.extracted_data || [];
+    return (data.extracted_data || []).filter(item => item.label !== 'session_id');
   };
 
   if (data.status === 'error') {
@@ -97,7 +97,7 @@ const ResultsDisplay = ({
           <h3>Données validées</h3>
           <div className="data-grid">
             {Object.entries(data)
-              .filter(([key]) => !key.startsWith('photo_') && !key.includes('_url') && key !== 'date_verification' && key !== 'statut_verification' && key !== 'images_base64')
+              .filter(([key]) => !key.startsWith('photo_') && !key.includes('_url') && key !== 'date_verification' && key !== 'statut_verification' && key !== 'images_base64' && key !== 'session_id')
               .map(([key, value]) => (
                 <div key={key} className="data-item">
                   <span className="data-label">{formatLabel(key)}:</span>
@@ -105,7 +105,7 @@ const ResultsDisplay = ({
                 </div>
               ))}
           </div>
-          
+
           {/* Afficher les URLs des photos si disponibles */}
           {(data.photo_reference_url || data.photo_capture_url) && (
             <div className="photo-section">
@@ -135,14 +135,14 @@ const ResultsDisplay = ({
             extractionKey={extractionKey}
           /> */}
 
-          <DataTable 
-            data={getExtractedData()} 
-            title="Données extraites" 
+          <DataTable
+            data={getExtractedData()}
+            title="Données extraites"
           />
 
           {data.mrz_data && data.mrz_data.length > 0 && (
-            <MRZSection 
-              mrzData={data.mrz_data} 
+            <MRZSection
+              mrzData={data.mrz_data}
             />
           )}
         </>
