@@ -211,7 +211,7 @@ def extract_regions_dual_view(request):
 
 
 @csrf_exempt
-def extract_regions_front_view(request):
+def extraction_passport(request):
     if request.method != 'POST':
         return JsonResponse({
             "status": "error",

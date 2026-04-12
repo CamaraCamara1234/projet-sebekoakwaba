@@ -1004,10 +1004,11 @@ const ReviewData = ({
 
         .image-card img {
           width: 100%;
-          height: 150px;
-          object-fit: cover;
+          max-height: 250px; /* Allow taller images to be visible without taking too much space */
+          object-fit: contain; /* Ensure the whole image is visible without cropping */
           border-radius: 6px;
           border: 2px solid #e0e0e0;
+          background: #f0f0f0; /* Slight gray background to distinguish boundaries of transparent/white images */
         }
 
         .review-actions {

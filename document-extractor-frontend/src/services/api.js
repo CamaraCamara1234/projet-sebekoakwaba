@@ -107,22 +107,19 @@ const apiRequest = async (endpoint, options = {}) => {
  * @param {FormData} formData 
  */
 export const extractSingleDocument = (formData) => {
-  return apiRequest('/extraction_front/', {
+  return apiRequest('/extraction_passport/', {
     method: 'POST',
     body: formData
   });
 };
 
-/**
- * Extraction recto-verso
- * @param {FormData} formData 
- */
-export const extractDualDocuments = (formData) => {
-  return apiRequest('/extraction_dual/', {
-    method: 'POST',
-    body: formData
-  });
-};
+// extractDualDocuments - désactivé (mode passeport uniquement)
+// export const extractDualDocuments = (formData) => {
+//   return apiRequest('/extraction_dual/', {
+//     method: 'POST',
+//     body: formData
+//   });
+// };
 
 /**
  * Vérification faciale simple

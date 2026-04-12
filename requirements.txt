@@ -19,6 +19,7 @@ torchvision
 # paddleocr==2.10.0
 pytesseract
 passporteye
+easyocr
 
 # Face recognition
 insightface

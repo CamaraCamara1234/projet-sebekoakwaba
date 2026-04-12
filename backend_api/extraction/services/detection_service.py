@@ -145,7 +145,8 @@ class DetectionService:
     @classmethod
     def extract_and_save_regions(cls, image_path: str, output_dir: str = "preprocessed_imgs",
                                  scale_factor: float = 1.0, max_dimension: int = 1200,
-                                 skip_validation: int = 1, session_id: str = None) -> List[Dict[str, Any]]:
+                                 skip_validation: int = 1, session_id: str = None,
+                                 force_class: str = "passeport") -> List[Dict[str, Any]]:
         """
         Méthode principale optimisée pour l'extraction des régions
         Version avec session_id pour l'isolation des sessions
@@ -157,6 +158,8 @@ class DetectionService:
             max_dimension: Dimension maximale pour l'image
             skip_validation: 1 pour valider la séquence, 2 pour ignorer
             session_id: Identifiant unique de session (pour éviter les écrasements)
+            force_class: Si défini, force la classification à cette valeur (ex: "passeport").
+                         Mettre à None pour utiliser la classification YOLO normale.
         
         Returns:
             Liste des régions extraites avec leurs métadonnées
@@ -197,7 +200,14 @@ class DetectionService:
                 for box, cls_id in zip(result.boxes.xyxy, result.boxes.cls):
                     x1, y1, x2, y2 = map(int, box)
                     region = img[y1:y2, x1:x2]
-                    class_name = cls._dict_classes[int(cls_id)]
+                    
+                    # Forcer la classification si force_class est défini
+                    if force_class:
+                        original_class = cls._dict_classes[int(cls_id)]
+                        class_name = force_class
+                        logger.info(f"Session {session_id} - Classification forcée: {original_class} -> {class_name}")
+                    else:
+                        class_name = cls._dict_classes[int(cls_id)]
 
                     # Validation (si activée)
                     if skip_validation == 1:

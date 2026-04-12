@@ -4,7 +4,6 @@ import ReviewData from './components/ReviewData';
 import FaceVerification from './components/FaceVerification';
 import {
   extractSingleDocument,
-  extractDualDocuments,
   cleanDirectories,
   clearSessionId,
   updateUserStatus,
@@ -59,30 +58,18 @@ function App() {
 
   // Étape 1 : Soumission du formulaire unifié
   const handleFormSubmit = async ({ formData: userData, files }) => {
-    // console.log('Formulaire soumis:', userData);
-    // console.log('Fichiers uploadés:', files);
-
     setFormData(userData);
     setUploadedFiles(files);
     setIsProcessing(true);
 
     try {
       const formDataObj = new FormData();
-
-      if (files.length === 1) {
-        formDataObj.append('image1', files[0]);
-        const result = await extractSingleDocument(formDataObj);
-        console.log("Résultat extraction:", result);
-        setExtractionResults(result);
-        setExtractionKey(prev => prev + 1);
-      } else if (files.length === 2) {
-        formDataObj.append('image1', files[0]);
-        formDataObj.append('image2', files[1]);
-        const result = await extractDualDocuments(formDataObj);
-        // console.log("Résultat extraction:", result);
-        setExtractionResults(result);
-        setExtractionKey(prev => prev + 1);
-      }
+      formDataObj.append('image1', files[0]);
+      
+      const result = await extractSingleDocument(formDataObj);
+      console.log("Résultat extraction:", result);
+      setExtractionResults(result);
+      setExtractionKey(prev => prev + 1);
 
       setCurrentStep(2);
 
