@@ -605,14 +605,14 @@ const ReviewData = ({
 
       <style jsx="true">{`
         .review-container {
-          max-width: 1000px;
-          margin: 2rem auto;
+          max-width: 1200px;
+          margin: 1rem auto;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
         .review-header {
           text-align: center;
-          margin-bottom: 2rem;
+          margin-bottom: 1rem;
         }
 
         .review-header h2 {
@@ -635,11 +635,11 @@ const ReviewData = ({
 
         .validation-summary {
           background: white;
-          border-radius: 8px;
-          padding: 1rem;
-          margin-bottom: 1rem;
+          border-radius: 6px;
+          padding: 0.75rem;
+          margin-bottom: 0.75rem;
           border-left: 4px solid;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .validation-summary.success {
@@ -661,8 +661,9 @@ const ReviewData = ({
         }
 
         .validation-summary p {
-          margin: 0.5rem 0;
+          margin: 0.25rem 0;
           color: #666;
+          font-size: 0.9rem;
         }
 
         .validation-help {
@@ -680,23 +681,23 @@ const ReviewData = ({
 
         .review-grid {
           display: block;
-          margin-bottom: 1rem;
+          margin-bottom: 0.75rem;
         }
 
         .review-section {
           background: white;
-          border-radius: 8px;
-          padding: 1rem;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          border-radius: 6px;
+          padding: 0.75rem;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .external-data-reference {
           background: #e3f2fd;
-          border-radius: 8px;
-          padding: 1rem;
-          margin-bottom: 1.5rem;
+          border-radius: 6px;
+          padding: 0.75rem;
+          margin-bottom: 0.75rem;
           border-left: 4px solid #2196f3;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .external-data-grid {
@@ -735,9 +736,9 @@ const ReviewData = ({
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          margin: 0 0 1rem;
+          margin: 0 0 0.5rem;
           color: #333;
-          font-size: 1.1rem;
+          font-size: 1rem;
           font-weight: 600;
         }
 
@@ -746,18 +747,18 @@ const ReviewData = ({
         }
 
         .review-cards {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+          gap: 0.5rem;
         }
 
         .review-card {
           background: #f8f9fa;
-          border-radius: 6px;
-          padding: 0.75rem;
+          border-radius: 4px;
+          padding: 0.5rem;
           transition: all 0.3s ease;
           position: relative;
-          border-left: 4px solid transparent;
+          border-left: 3px solid transparent;
         }
 
         .review-card.user-card {
@@ -781,9 +782,9 @@ const ReviewData = ({
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 0.5rem;
+          margin-bottom: 0.25rem;
           flex-wrap: wrap;
-          gap: 0.5rem;
+          gap: 0.25rem;
         }
 
         .field-label {
@@ -851,7 +852,7 @@ const ReviewData = ({
         }
 
         .card-content {
-          margin-bottom: 0.5rem;
+          margin-bottom: 0.25rem;
         }
 
         .view-mode {
@@ -944,8 +945,8 @@ const ReviewData = ({
         .card-footer {
           display: flex;
           align-items: center;
-          gap: 1rem;
-          margin-top: 0.5rem;
+          gap: 0.5rem;
+          margin-top: 0.25rem;
         }
 
         .confidence-bar {
@@ -970,10 +971,10 @@ const ReviewData = ({
 
         .document-images {
           background: white;
-          border-radius: 8px;
-          padding: 1rem;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          border-radius: 6px;
+          padding: 0.75rem;
+          margin-bottom: 0.75rem;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .images-grid {
@@ -1005,10 +1006,10 @@ const ReviewData = ({
 
         .image-card img {
           width: 100%;
-          max-height: 250px; /* Allow taller images to be visible without taking too much space */
+          max-height: 120px; /* Allow taller images to be visible without taking too much space */
           object-fit: contain; /* Ensure the whole image is visible without cropping */
-          border-radius: 6px;
-          border: 2px solid #e0e0e0;
+          border-radius: 4px;
+          border: 1px solid #e0e0e0;
           background: #f0f0f0; /* Slight gray background to distinguish boundaries of transparent/white images */
         }
 
@@ -1098,9 +1099,8 @@ const ReviewData = ({
         }
 
         @media (max-width: 768px) {
-          .review-grid {
+          .review-cards {
             grid-template-columns: 1fr;
-            gap: 1rem;
           }
 
           .review-actions {
