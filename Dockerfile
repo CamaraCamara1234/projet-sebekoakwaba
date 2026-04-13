@@ -1,4 +1,6 @@
+# ==========================================
 # Stage 1: Builder
+# ==========================================
 FROM python:3.10-slim as builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -15,27 +17,38 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
+# Création de l'environnement virtuel (Meilleure pratique Docker ML)
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel cython
 
-# CPU versions
+# Installation des frameworks IA lourds (Mis en cache Docker si requirements change)
 RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu && \
     pip install --no-cache-dir paddlepaddle==2.6.2 -i https://pypi.tuna.tsinghua.edu.cn/simple && \
     pip install --no-cache-dir paddleocr==2.10.0
 
+# Copie et installation du reste des dépendances
 COPY requirements.txt .
 RUN sed -i '/torch/d' requirements.txt && \
     sed -i '/paddle/d' requirements.txt && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt gunicorn
 
-# 🔥 ajouter gunicorn ici
-RUN pip install gunicorn
-
+# ==========================================
 # Stage 2: Runtime
+# ==========================================
 FROM python:3.10-slim
 
+# Optimisation des performances CPU pour l'IA
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    DEBIAN_FRONTEND=noninteractive
+    DEBIAN_FRONTEND=noninteractive \
+    PATH="/opt/venv/bin:$PATH" \
+    OMP_NUM_THREADS=1 \
+    OPENBLAS_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 \
+    VECLIB_MAXIMUM_THREADS=1 \
+    NUMEXPR_NUM_THREADS=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr \
@@ -51,13 +64,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+# On copie purement et simplement le venv compilé
+COPY --from=builder /opt/venv /opt/venv
 
+# Copie du code source
 COPY . .
-# Déplacement vers le dossier du backend pour Django/Gunicorn
+
 WORKDIR /app/backend_api
 
+# Création des dossiers nécessaires
 RUN mkdir -p media/preprocessed_imgs media/extracted_regions
 
 EXPOSE 8000

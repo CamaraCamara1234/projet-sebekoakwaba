@@ -1,5 +1,5 @@
-// const API_BASE = 'https://checkid.akwabasebeko.com';
-const API_BASE = 'https://jonna-unstrung-sickeningly.ngrok-free.dev';
+const API_BASE = 'https://checkid.akwabasebeko.com';
+// const API_BASE = 'https://jonna-unstrung-sickeningly.ngrok-free.dev';
 // const API_BASE = 'http://127.0.0.1:8000';
 
 const SESSION_ID_KEY = 'secureid_session_id';
