@@ -606,7 +606,7 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
                     {isUploading ? (
                       <><span className="spinner-small"></span> Traitement en cours...</>
                     ) : (
-                      '➔'
+                      'Continuer'
                     )}
                   </button>
                 </div>
