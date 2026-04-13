@@ -225,14 +225,6 @@ function App() {
       case 2:
         return (
           <div className="step-container">
-            <div className="step-header">
-              <button
-                className="nav-link"
-                onClick={() => setCurrentStep(1)}
-              >
-                ← Modifier le formulaire
-              </button>
-            </div>
             <ReviewData
               extractedData={extractionResults}
               formData={formData}
@@ -404,7 +396,7 @@ function App() {
       <footer className="app-footer">
         <div className="container">
           <div className="footer-content">
-            <p>© {new Date().getFullYear()} SecureID. Tous droits réservés.</p>
+            <p>© {new Date().getFullYear()} AkwabaCheckid. Tous droits réservés.</p>
             <div className="footer-links">
               <a href="/privacy">Confidentialité</a>
               <a href="/terms">Conditions</a>

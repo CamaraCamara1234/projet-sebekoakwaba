@@ -237,7 +237,6 @@ const ReviewData = ({
 
     if (extractedItems.length > 0) {
       extractedItems.forEach(item => {
-        // Mapping des labels vers des libellés lisibles
         const labelMapping = {
           'nom': 'Nom',
           'prenom': 'Prénom',
@@ -281,11 +280,11 @@ const ReviewData = ({
         <p className="review-subtitle">
           Veuillez vérifier les informations ci-dessous. Vous pouvez modifier les champs si nécessaire.
         </p>
-        {extractedData?.session_id && (
+        {/* {extractedData?.session_id && (
           <p className="session-info">
             Session: {extractedData.session_id.substring(0, 8)}...
           </p>
-        )}
+        )} */}
       </div>
 
       {/* Message d'erreur de correspondance externe */}
@@ -413,13 +412,15 @@ const ReviewData = ({
                     ) : (
                       <div className="view-mode">
                         <span className="field-value">{currentValue || '-'}</span>
-                        <button
-                          onClick={() => handleEdit(field.key)}
-                          className="edit-btn"
-                          title="Modifier"
-                        >
-                          ✏️
-                        </button>
+                        {field.key !== 'code' && (
+                          <button
+                            onClick={() => handleEdit(field.key)}
+                            className="edit-btn"
+                            title="Modifier"
+                          >
+                            ✏️
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -616,14 +617,14 @@ const ReviewData = ({
 
         .review-header h2 {
           color: white;
-          margin-bottom: 0.5rem;
-          font-size: 2rem;
+          margin-bottom: 0.25rem;
+          font-size: 1.5rem;
           font-weight: 600;
         }
 
         .review-subtitle {
           color: rgba(255, 255, 255, 0.9);
-          font-size: 1.1rem;
+          font-size: 1rem;
         }
 
         .session-info {
@@ -634,9 +635,9 @@ const ReviewData = ({
 
         .validation-summary {
           background: white;
-          border-radius: 12px;
-          padding: 1.5rem;
-          margin-bottom: 2rem;
+          border-radius: 8px;
+          padding: 1rem;
+          margin-bottom: 1rem;
           border-left: 4px solid;
           box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
@@ -679,21 +680,21 @@ const ReviewData = ({
 
         .review-grid {
           display: block;
-          margin-bottom: 2rem;
+          margin-bottom: 1rem;
         }
 
         .review-section {
           background: white;
-          border-radius: 12px;
-          padding: 1.5rem;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          border-radius: 8px;
+          padding: 1rem;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .external-data-reference {
           background: #e3f2fd;
-          border-radius: 12px;
-          padding: 1.5rem;
-          margin-bottom: 2rem;
+          border-radius: 8px;
+          padding: 1rem;
+          margin-bottom: 1.5rem;
           border-left: 4px solid #2196f3;
           box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
@@ -734,9 +735,9 @@ const ReviewData = ({
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          margin: 0 0 1.5rem;
+          margin: 0 0 1rem;
           color: #333;
-          font-size: 1.2rem;
+          font-size: 1.1rem;
           font-weight: 600;
         }
 
@@ -752,8 +753,8 @@ const ReviewData = ({
 
         .review-card {
           background: #f8f9fa;
-          border-radius: 8px;
-          padding: 1rem;
+          border-radius: 6px;
+          padding: 0.75rem;
           transition: all 0.3s ease;
           position: relative;
           border-left: 4px solid transparent;
@@ -862,7 +863,7 @@ const ReviewData = ({
         .field-value {
           color: #666;
           word-break: break-word;
-          font-size: 1rem;
+          font-size: 0.9rem;
         }
 
         .edit-btn {
@@ -969,24 +970,24 @@ const ReviewData = ({
 
         .document-images {
           background: white;
-          border-radius: 12px;
-          padding: 1.5rem;
-          margin-bottom: 2rem;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          border-radius: 8px;
+          padding: 1rem;
+          margin-bottom: 1.5rem;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .images-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-          gap: 1.5rem;
-          margin-top: 1.5rem;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: 1rem;
+          margin-top: 1rem;
         }
 
         .image-card {
           text-align: center;
           background: #f8f9fa;
-          padding: 1rem;
-          border-radius: 8px;
+          padding: 0.75rem;
+          border-radius: 6px;
           transition: transform 0.2s ease;
         }
 
@@ -1027,10 +1028,10 @@ const ReviewData = ({
         }
 
         .btn {
-          padding: 0.85rem 2rem;
+          padding: 0.75rem 1.5rem;
           border: none;
-          border-radius: 8px;
-          font-size: 1rem;
+          border-radius: 6px;
+          font-size: 0.95rem;
           font-weight: 500;
           cursor: pointer;
           transition: all 0.3s ease;
