@@ -411,7 +411,7 @@ function App() {
           min-height: 100vh;
           display: flex;
           flex-direction: column;
-          background: linear-gradient(135deg, #029bdc 0%, #daf2f9 50%, #2c5364 100%);
+          background: linear-gradient(135deg, #0477a8ff 0%, #a8dbeaff 50%, #2c5364 100%);
           position: relative;
           overflow-x: hidden;
         }
