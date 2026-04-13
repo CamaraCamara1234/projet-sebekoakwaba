@@ -1,5 +1,5 @@
 // components/ReviewData.jsx
-import React, { useState} from 'react';
+import React, { useState } from 'react';
 import { validationData, getSessionId, cleanDirectories } from '../services/api';
 
 const normalizeString = (str) => {
@@ -129,9 +129,9 @@ const ReviewData = ({
 
         // Vérifier la correspondance avec les données externes
         if (externalData) {
-          const nomMatch = !externalData.nom || 
+          const nomMatch = !externalData.nom ||
             normalizeString(validatedData.nom) === normalizeString(externalData.nom);
-          const prenomMatch = !externalData.prenom || 
+          const prenomMatch = !externalData.prenom ||
             normalizeString(validatedData.prenom) === normalizeString(externalData.prenom);
 
           if (!nomMatch || !prenomMatch) {
@@ -168,12 +168,12 @@ const ReviewData = ({
 
     } catch (error) {
       console.error("❌ Erreur lors de la validation:", error);
-      
+
       // Même en cas d'erreur API, on vérifie la correspondance externe avant de laisser passer
       if (externalData) {
-        const nomMatch = !externalData.nom || 
+        const nomMatch = !externalData.nom ||
           normalizeString(editedData.nom) === normalizeString(externalData.nom);
-        const prenomMatch = !externalData.prenom || 
+        const prenomMatch = !externalData.prenom ||
           normalizeString(editedData.prenom) === normalizeString(externalData.prenom);
 
         if (!nomMatch || !prenomMatch) {
@@ -184,7 +184,7 @@ const ReviewData = ({
           return;
         }
       }
-      
+
       onConfirm(editedData);
     } finally {
       setIsValidating(false);
@@ -352,7 +352,7 @@ const ReviewData = ({
               const confidence = field.confidence * 100;
               const currentValue = editedData[field.key] || extractedValue || '';
               const validationStatus = getValidationStatus(field.key);
-              
+
               // Comparaison avec les données externes (URL)
               const referenceValue = externalData?.[field.key];
               const hasDiscrepancy = referenceValue && currentValue && normalizeString(referenceValue) !== normalizeString(currentValue);
