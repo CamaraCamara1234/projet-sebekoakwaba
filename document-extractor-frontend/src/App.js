@@ -33,6 +33,7 @@ function App() {
   const [extractionKey, setExtractionKey] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [showToast, setShowToast] = useState(false);
   const [externalData, setExternalData] = useState(null);
 
   // Récupérer les données de l'URL au chargement
@@ -165,24 +166,25 @@ function App() {
       user_id: externalData.id
     };
 
-    console.log('✅ Données finales:', finalData);
+    // console.log('✅ Données finales:', finalData);
     setIsProcessing(true);
 
     try {
       await updateUserStatus(finalData);
       await cleanDirectories();
       setRegistrationComplete(true);
-      alert('✅ Inscription réussie !');
+      setShowToast(true);
+      // Redirection très rapide pour éviter tout délai, on laisse juste le temps au navigateur
+      // de peindre le toast
+      setTimeout(() => {
+        window.location.href = "https://akwabasebeko.com/";
+      }, 300);
     } catch (err) {
       console.error("Erreur finalisation:", err);
       setError("Erreur lors de la communication avec le serveur principal");
     } finally {
       setIsProcessing(false);
     }
-
-    setTimeout(() => {
-      resetRegistration();
-    }, 3000);
   };
 
   // Réinitialisation complète avec nettoyage de la session
@@ -287,13 +289,13 @@ function App() {
             />
 
             <div className="action-buttons">
-              <button
+              {/* <button
                 onClick={resetRegistration}
                 className="btn btn-secondary"
                 disabled={isProcessing}
               >
                 Nouvelle inscription
-              </button>
+              </button> */}
               <button
                 onClick={handleFinalizeRegistration}
                 disabled={isProcessing || registrationComplete}
@@ -379,6 +381,12 @@ function App() {
 
       <main className="app-main">
         <div className="container">
+          {showToast && (
+            <div className="toast-notification">
+              <span className="toast-icon">✅</span> 
+              Vérification terminée ! Redirection en cours...
+            </div>
+          )}
           {error && (
             <div className="error-container">
               <div className="alert error">
@@ -804,7 +812,46 @@ function App() {
           }
         }
 
+        .toast-notification {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: white;
+          color: #333;
+          padding: 16px 24px;
+          border-radius: 8px;
+          border-left: 4px solid #4CAF50;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          z-index: 9999;
+          animation: slideInRight 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+          font-weight: 500;
+          font-size: 0.95rem;
+        }
+
+        .toast-icon {
+          font-size: 1.2rem;
+        }
+
+        @keyframes slideInRight {
+          from {
+            transform: translateX(120%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+
         @media (max-width: 768px) {
+          .toast-notification {
+            top: 10px;
+            right: 10px;
+            left: 10px; /* Takes full width with margin on small devices */
+          }
           .container {
             padding: 0 1rem;
           }
