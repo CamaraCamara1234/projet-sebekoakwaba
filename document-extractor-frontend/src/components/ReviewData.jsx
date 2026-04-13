@@ -11,7 +11,6 @@ const normalizeString = (str) => {
     .replace(/[\u0300-\u036f]/g, "");
 };
 
-
 const ReviewData = ({
   extractedData,
   formData,
@@ -21,9 +20,7 @@ const ReviewData = ({
   isProcessing
 }) => {
   const [editedData, setEditedData] = useState(() => {
-    // Initialiser avec les données extraites
     const initialData = {};
-
     if (extractedData?.extracted_data) {
       extractedData.extracted_data.forEach(item => {
         if (!item.label.endsWith('_ar')) {
@@ -31,27 +28,15 @@ const ReviewData = ({
         }
       });
     }
-
-    // Ajouter les données du formulaire, mais NE PAS ÉCRASER les données extraites
-    // avec des chaînes vides
     if (formData) {
       Object.entries(formData).forEach(([key, value]) => {
-        // N'écraser que si la valeur n'est pas vide
         if (value && value.trim() !== '') {
           initialData[key] = value;
         }
       });
     }
-
     return initialData;
   });
-
-  // Log pour déboguer
-  // useEffect(() => {
-  //   console.log("📦 Données extraites reçues:", extractedData);
-  //   console.log("📝 Données du formulaire:", formData);
-  //   console.log("✏️ Données éditées initialisées:", editedData);
-  // }, []);
 
   const [editMode, setEditMode] = useState({});
   const [validationResult, setValidationResult] = useState(null);
@@ -59,7 +44,6 @@ const ReviewData = ({
   const [showCorrections, setShowCorrections] = useState(false);
   const [externalError, setExternalError] = useState(null);
 
-  // Extraire les items du document (sans les champs arabes)
   const extractedItems = extractedData?.extracted_data?.filter(
     item => !item.label.endsWith('_ar')
   ) || [];
@@ -80,60 +64,34 @@ const ReviewData = ({
   const handleConfirmWithValidation = async () => {
     setIsValidating(true);
     setExternalError(null);
-
     try {
-      // Préparer les données pour la validation
       const formDataToSend = new FormData();
-
-      // Ajouter le session_id
       const sessionId = getSessionId();
       if (sessionId) {
         formDataToSend.append('session_id', sessionId);
       }
-
-      // Ajouter les données OCR corrigées
       formDataToSend.append('data', JSON.stringify(editedData));
-
-      // Ajouter les données MRZ si disponibles
       if (extractedData?.mrz_data && extractedData.mrz_data.length > 0) {
         formDataToSend.append('data_mrz', JSON.stringify(extractedData.mrz_data[0]));
       } else {
         formDataToSend.append('data_mrz', JSON.stringify({}));
       }
-
-      // console.log("📤 Envoi pour validation:", {
-      //   data: editedData,
-      //   mrz: extractedData?.mrz_data?.[0]
-      // });
-
-      // Envoyer pour validation
       const result = await validationData(formDataToSend);
-      // console.log("📥 Résultat validation:", result);
-
       setValidationResult(result);
-
-      // Vérifier si toutes les données sont validées
       const allVerified = result.data_verified &&
         Object.values(result.data_verified).every(v => v.verified);
-
       if (allVerified) {
-        // Si tout est validé, créer les données finales
         const validatedData = { ...editedData };
-
-        // Mettre à jour avec les valeurs validées
         Object.entries(result.data_verified).forEach(([key, value]) => {
           if (value.value) {
             validatedData[key] = value.value;
           }
         });
-
-        // Vérifier la correspondance avec les données externes
         if (externalData) {
           const nomMatch = !externalData.nom ||
             normalizeString(validatedData.nom) === normalizeString(externalData.nom);
           const prenomMatch = !externalData.prenom ||
             normalizeString(validatedData.prenom) === normalizeString(externalData.prenom);
-
           if (!nomMatch || !prenomMatch) {
             let errorMsg = "Divergence avec les données du système :";
             if (!nomMatch) errorMsg += ` le nom "${validatedData.nom}" ne correspond pas à "${externalData.nom}".`;
@@ -143,39 +101,28 @@ const ReviewData = ({
             return;
           }
         }
-
-        // Appeler onConfirm avec les données validées et le résultat
         onConfirm(validatedData, result);
       } else {
-        // Si certaines données ne sont pas validées, montrer les corrections
         setShowCorrections(true);
-
-        // Mettre à jour editedData avec les valeurs MRZ quand c'est pertinent
         const updatedData = { ...editedData };
         let hasChanges = false;
-
         Object.entries(result.data_verified || {}).forEach(([key, value]) => {
           if (!value.verified && value.mrz_value && value.mrz_value !== updatedData[key]) {
             updatedData[key] = value.mrz_value;
             hasChanges = true;
           }
         });
-
         if (hasChanges) {
           setEditedData(updatedData);
         }
       }
-
     } catch (error) {
       console.error("❌ Erreur lors de la validation:", error);
-
-      // Même en cas d'erreur API, on vérifie la correspondance externe avant de laisser passer
       if (externalData) {
         const nomMatch = !externalData.nom ||
           normalizeString(editedData.nom) === normalizeString(externalData.nom);
         const prenomMatch = !externalData.prenom ||
           normalizeString(editedData.prenom) === normalizeString(externalData.prenom);
-
         if (!nomMatch || !prenomMatch) {
           let errorMsg = "Impossible de valider car les données ne correspondent pas au système :";
           if (!nomMatch) errorMsg += ` le nom "${editedData.nom}" vs "${externalData.nom}".`;
@@ -184,16 +131,10 @@ const ReviewData = ({
           return;
         }
       }
-
       onConfirm(editedData);
     } finally {
       setIsValidating(false);
     }
-  };
-
-  const handleForceConfirm = () => {
-    // Confirmer malgré les erreurs de validation
-    onConfirm(editedData, validationResult);
   };
 
   const getExtractedValue = (field) => {
@@ -212,17 +153,14 @@ const ReviewData = ({
     return '#F44336';
   };
 
-  // Fonction pour obtenir le statut de validation d'un champ
   const getValidationStatus = (field) => {
     if (!validationResult?.data_verified) return null;
     return validationResult.data_verified[field] || null;
   };
 
-  // Vérifier si tous les champs sont validés
   const allFieldsVerified = validationResult?.data_verified &&
     Object.values(validationResult.data_verified).every(v => v.verified);
 
-  // Compter les champs validés
   const verifiedCount = validationResult?.data_verified
     ? Object.values(validationResult.data_verified).filter(v => v.verified).length
     : 0;
@@ -231,10 +169,8 @@ const ReviewData = ({
     ? Object.keys(validationResult.data_verified).length
     : 0;
 
-  // Mapping des champs du document pour l'affichage (basé sur ce qui est effectivement extrait)
   const getDocumentFields = () => {
     const fields = [];
-
     if (extractedItems.length > 0) {
       extractedItems.forEach(item => {
         const labelMapping = {
@@ -258,7 +194,6 @@ const ReviewData = ({
           'taille': 'Taille',
           'nini': 'Numéro NINI'
         };
-
         fields.push({
           key: item.label,
           label: labelMapping[item.label] || item.label,
@@ -266,64 +201,53 @@ const ReviewData = ({
         });
       });
     }
-
     return fields;
   };
 
   const documentFields = getDocumentFields();
-
 
   return (
     <div className="review-container">
       <div className="review-header">
         <h2>Vérification des données</h2>
         <p className="review-subtitle">
-          Veuillez vérifier les informations ci-dessous. Vous pouvez modifier les champs si nécessaire.
+          Vérifiez et modifiez si nécessaire
         </p>
-        {/* {extractedData?.session_id && (
-          <p className="session-info">
-            Session: {extractedData.session_id.substring(0, 8)}...
-          </p>
-        )} */}
       </div>
 
-      {/* Message d'erreur de correspondance externe */}
       {externalError && (
         <div className="validation-summary error">
           <h4>❌ Erreur de correspondance</h4>
           <p>{externalError}</p>
           <p className="validation-help error">
-            Veuillez corriger le Nom et le Prénom pour qu'ils correspondent exactement aux données attendues par le système.
+            Corrigez le Nom et Prénom pour correspondre au système.
           </p>
         </div>
       )}
 
-      {/* Message de validation si disponible */}
       {validationResult && (
         <div className={`validation-summary ${allFieldsVerified ? 'success' : 'warning'}`}>
           <h4>Résultat de la validation</h4>
           <p>
             {allFieldsVerified ? (
-              "✅ Toutes les données ont été validées avec succès !"
+              "✅ Toutes les données validées !"
             ) : (
-              `⚠️ ${verifiedCount}/${totalCount} champs validés automatiquement`
+              `⚠️ ${verifiedCount}/${totalCount} champs validés`
             )}
           </p>
           {!allFieldsVerified && (
             <p className="validation-help">
-              Les champs en orange ont été corrigés automatiquement par les données MRZ.
-              Veuillez vérifier et confirmer.
+              Champs orange corrigés par MRZ.
             </p>
           )}
         </div>
       )}
 
-      {/* Données de référence de l'URL */}
       {externalData && (
         <div className="external-data-reference">
           <h3 className="section-title">
             <span className="section-icon">🔗</span>
-            Données de référence (Système externe)
+            Données de référence
           </h3>
           <div className="external-data-grid">
             {Object.entries(externalData)
@@ -339,11 +263,10 @@ const ReviewData = ({
       )}
 
       <div className="review-grid">
-        {/* Section Document */}
         <div className="review-section">
           <h3 className="section-title">
             <span className="section-icon">📄</span>
-            Informations extraites du document
+            Informations extraites
           </h3>
 
           <div className="review-cards">
@@ -352,12 +275,9 @@ const ReviewData = ({
               const confidence = field.confidence * 100;
               const currentValue = editedData[field.key] || extractedValue || '';
               const validationStatus = getValidationStatus(field.key);
-
-              // Comparaison avec les données externes (URL)
               const referenceValue = externalData?.[field.key];
               const hasDiscrepancy = referenceValue && currentValue && normalizeString(referenceValue) !== normalizeString(currentValue);
 
-              // Déterminer la classe CSS en fonction de la validation et des données externes
               let cardClass = 'review-card';
               if (validationStatus) {
                 cardClass += validationStatus.verified ? ' verified' : ' warning';
@@ -367,18 +287,17 @@ const ReviewData = ({
               }
 
               return (
-                <div
-                  key={field.key}
-                  className={cardClass}
-                >
+                <div key={field.key} className={cardClass}>
                   <div className="card-header">
-                    <span className="field-label">{field.label}</span>
+                    <div className="card-header-left">
+                      <span className="field-label">{field.label}</span>
+                      {validationStatus && (
+                        <span className={`validation-badge ${validationStatus.verified ? 'success' : 'warning'}`}>
+                          {validationStatus.verified ? '✓' : '⚠️'}
+                        </span>
+                      )}
+                    </div>
                     <span className="field-source">Document</span>
-                    {validationStatus && (
-                      <span className={`validation-badge ${validationStatus.verified ? 'success' : 'warning'}`}>
-                        {validationStatus.verified ? '✓' : '⚠️'}
-                      </span>
-                    )}
                   </div>
 
                   <div className="card-content">
@@ -427,14 +346,14 @@ const ReviewData = ({
 
                   {validationStatus && !validationStatus.verified && validationStatus.mrz_value && (
                     <div className="validation-correction">
-                      <small>✓ Corrigé par MRZ: {validationStatus.mrz_value}</small>
+                      <small>✓ MRZ: {validationStatus.mrz_value}</small>
                     </div>
                   )}
 
                   {referenceValue && (
                     <div className={`reference-info ${hasDiscrepancy ? 'error' : 'success'}`}>
                       <small>
-                        {hasDiscrepancy ? '❌ Diffère du système: ' : '✅ Correspond au système: '}
+                        {hasDiscrepancy ? '❌ Système: ' : '✅ Système: '}
                         <strong>{referenceValue}</strong>
                       </small>
                     </div>
@@ -451,7 +370,7 @@ const ReviewData = ({
                       ></div>
                     </div>
                     <span className="confidence-text">
-                      Confiance: {confidence.toFixed(1)}%
+                      {confidence.toFixed(0)}%
                     </span>
                   </div>
                 </div>
@@ -459,10 +378,8 @@ const ReviewData = ({
             })}
           </div>
         </div>
-
       </div>
 
-      {/* Images du document */}
       <div className="document-images">
         <h3 className="section-title">
           <span className="section-icon">🖼️</span>
@@ -471,7 +388,7 @@ const ReviewData = ({
         <div className="images-grid">
           {extractedData?.photo && extractedData.photo !== 'N/A' && (
             <div className="image-card">
-              <h4>Photo d'identité</h4>
+              <h4>Photo</h4>
               <img
                 src={extractedData.photo}
                 alt="Photo"
@@ -531,7 +448,7 @@ const ReviewData = ({
           )}
           {extractedData?.mrz_image && extractedData.mrz_image !== 'N/A' && (
             <div className="image-card">
-              <h4>Zone MRZ</h4>
+              <h4>MRZ</h4>
               <img
                 src={extractedData.mrz_image}
                 alt="MRZ"
@@ -544,18 +461,16 @@ const ReviewData = ({
         </div>
       </div>
 
-      {/* Boutons d'action */}
       <div className="review-actions">
         <button
           onClick={onEdit}
           className="btn btn-secondary"
           disabled={isProcessing || isValidating}
         >
-          ← Modifier le formulaire
+          ← Modifier
         </button>
 
         {validationResult && !allFieldsVerified ? (
-          // Si validation effectuée mais pas tout validé
           <div className="button-group">
             <button
               onClick={handleConfirmWithValidation}
@@ -571,16 +486,8 @@ const ReviewData = ({
                 'Re-valider'
               )}
             </button>
-            {/* <button
-              onClick={handleForceConfirm}
-              className="btn btn-warning"
-              disabled={isProcessing || isValidating}
-            >
-              Confirmer manuellement
-            </button> */}
           </div>
         ) : (
-          // Validation initiale ou tout est validé
           <button
             onClick={handleConfirmWithValidation}
             className="btn btn-primary"
@@ -589,7 +496,7 @@ const ReviewData = ({
             {isValidating ? (
               <>
                 <span className="spinner-small"></span>
-                Validation en cours...
+                Validation...
               </>
             ) : isProcessing ? (
               <>
@@ -605,40 +512,38 @@ const ReviewData = ({
 
       <style jsx="true">{`
         .review-container {
-          max-width: 1200px;
-          margin: 1rem auto;
+          max-width: 100%;
+          margin: 0;
+          padding: 0.5rem;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          box-sizing: border-box;
         }
 
         .review-header {
-          text-align: center;
-          margin-bottom: 1rem;
+          text-align: left;
+          margin-bottom: 0.75rem;
+          padding: 0 0.25rem;
         }
 
         .review-header h2 {
           color: white;
-          margin-bottom: 0.25rem;
-          font-size: 1.5rem;
+          margin-bottom: 0.15rem;
+          font-size: 1.25rem;
           font-weight: 600;
         }
 
         .review-subtitle {
           color: rgba(255, 255, 255, 0.9);
-          font-size: 1rem;
-        }
-
-        .session-info {
-          color: rgba(255, 255, 255, 0.7);
-          font-size: 0.9rem;
-          margin-top: 0.5rem;
+          font-size: 0.8rem;
+          margin: 0;
         }
 
         .validation-summary {
           background: white;
           border-radius: 6px;
-          padding: 0.75rem;
+          padding: 0.5rem 0.75rem;
           margin-bottom: 0.75rem;
-          border-left: 4px solid;
+          border-left: 3px solid;
           box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
@@ -656,22 +561,24 @@ const ReviewData = ({
         }
 
         .validation-summary h4 {
-          margin: 0 0 0.5rem;
+          margin: 0 0 0.25rem;
           color: #333;
+          font-size: 0.9rem;
         }
 
         .validation-summary p {
           margin: 0.25rem 0;
           color: #666;
-          font-size: 0.9rem;
+          font-size: 0.8rem;
         }
 
         .validation-help {
-          font-size: 0.9rem;
+          font-size: 0.75rem;
           color: #FF9800;
           background: #fff3e0;
-          padding: 0.5rem;
+          padding: 0.25rem 0.5rem;
           border-radius: 4px;
+          margin-top: 0.25rem;
         }
 
         .validation-help.error {
@@ -694,75 +601,69 @@ const ReviewData = ({
         .external-data-reference {
           background: #e3f2fd;
           border-radius: 6px;
-          padding: 0.75rem;
+          padding: 0.5rem 0.75rem;
           margin-bottom: 0.75rem;
-          border-left: 4px solid #2196f3;
+          border-left: 3px solid #2196f3;
           box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .external-data-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-          gap: 1rem;
-          margin-top: 1rem;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          margin-top: 0.5rem;
         }
 
         .external-item {
           display: flex;
           flex-direction: column;
+          background: white;
+          padding: 0.25rem 0.5rem;
+          border-radius: 4px;
+          min-width: 120px;
+          flex: 1 0 auto;
         }
 
         .external-label {
-          font-size: 0.8rem;
+          font-size: 0.65rem;
           color: #1976d2;
           font-weight: bold;
           text-transform: uppercase;
         }
 
         .external-value {
-          font-size: 1rem;
+          font-size: 0.8rem;
           color: #333;
           font-weight: 500;
-        }
-
-        .section-note {
-          font-size: 0.9rem;
-          color: #666;
-          margin-top: -1rem;
-          margin-bottom: 1rem;
         }
 
         .section-title {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: 0.35rem;
           margin: 0 0 0.5rem;
           color: #333;
-          font-size: 1rem;
+          font-size: 0.95rem;
           font-weight: 600;
         }
 
         .section-icon {
-          font-size: 1.5rem;
+          font-size: 1.1rem;
         }
 
         .review-cards {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+          display: flex;
+          flex-direction: column;
           gap: 0.5rem;
         }
 
         .review-card {
           background: #f8f9fa;
-          border-radius: 4px;
+          border-radius: 5px;
           padding: 0.5rem;
-          transition: all 0.3s ease;
+          transition: all 0.2s ease;
           position: relative;
           border-left: 3px solid transparent;
-        }
-
-        .review-card.user-card {
-          background: #fff3e0;
         }
 
         .review-card.verified {
@@ -787,28 +688,31 @@ const ReviewData = ({
           gap: 0.25rem;
         }
 
+        .card-header-left {
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+          flex-wrap: wrap;
+        }
+
         .field-label {
           font-weight: 600;
           color: #333;
+          font-size: 0.8rem;
         }
 
         .field-source {
-          font-size: 0.75rem;
-          padding: 0.25rem 0.5rem;
-          border-radius: 4px;
+          font-size: 0.6rem;
+          padding: 0.15rem 0.35rem;
+          border-radius: 3px;
           background: #e0e0e0;
           color: #666;
         }
 
-        .field-source.user {
-          background: #ff9800;
-          color: white;
-        }
-
         .validation-badge {
-          font-size: 0.9rem;
-          padding: 0.2rem 0.5rem;
-          border-radius: 4px;
+          font-size: 0.7rem;
+          padding: 0.1rem 0.3rem;
+          border-radius: 3px;
         }
 
         .validation-badge.success {
@@ -822,21 +726,21 @@ const ReviewData = ({
         }
 
         .validation-correction {
-          margin: 0.5rem 0;
-          padding: 0.5rem;
+          margin: 0.25rem 0;
+          padding: 0.25rem 0.35rem;
           background: #e8f5e9;
-          border-radius: 4px;
+          border-radius: 3px;
           color: #2e7d32;
-          font-size: 0.85rem;
-          border-left: 3px solid #4CAF50;
+          font-size: 0.7rem;
+          border-left: 2px solid #4CAF50;
         }
 
         .reference-info {
-          margin: 0.5rem 0;
-          padding: 0.5rem;
-          border-radius: 4px;
-          font-size: 0.85rem;
-          border-left: 3px solid;
+          margin: 0.25rem 0;
+          padding: 0.25rem 0.35rem;
+          border-radius: 3px;
+          font-size: 0.7rem;
+          border-left: 2px solid;
         }
 
         .reference-info.success {
@@ -864,58 +768,61 @@ const ReviewData = ({
         .field-value {
           color: #666;
           word-break: break-word;
-          font-size: 0.9rem;
+          font-size: 0.8rem;
         }
 
         .edit-btn {
           background: none;
           border: none;
-          font-size: 1.2rem;
+          font-size: 1rem;
           cursor: pointer;
           opacity: 0.5;
-          transition: all 0.3s ease;
-          padding: 0.3rem 0.6rem;
-          border-radius: 4px;
+          transition: all 0.2s ease;
+          padding: 0.2rem 0.4rem;
+          border-radius: 3px;
+          min-width: 28px;
+          min-height: 28px;
         }
 
         .edit-btn:hover {
           opacity: 1;
-          transform: scale(1.1);
+          transform: scale(1.05);
           background: #e0e0e0;
         }
 
         .edit-mode {
           display: flex;
-          gap: 0.5rem;
+          gap: 0.25rem;
           align-items: flex-start;
         }
 
         .edit-input {
           flex: 1;
-          padding: 0.5rem;
-          border: 2px solid #667eea;
+          padding: 0.35rem;
+          border: 1.5px solid #667eea;
           border-radius: 4px;
-          font-size: 0.95rem;
+          font-size: 0.8rem;
           outline: none;
+          min-width: 0;
         }
 
         .edit-input:focus {
-          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+          box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.15);
         }
 
         .edit-actions {
           display: flex;
-          gap: 0.25rem;
+          gap: 0.15rem;
         }
 
         .save-btn,
         .cancel-btn {
-          width: 36px;
-          height: 36px;
+          width: 32px;
+          height: 32px;
           border: none;
           border-radius: 4px;
           cursor: pointer;
-          font-size: 1.1rem;
+          font-size: 1rem;
           transition: all 0.2s ease;
           display: flex;
           align-items: center;
@@ -929,7 +836,6 @@ const ReviewData = ({
 
         .save-btn:hover {
           background: #45a049;
-          transform: scale(1.05);
         }
 
         .cancel-btn {
@@ -939,7 +845,6 @@ const ReviewData = ({
 
         .cancel-btn:hover {
           background: #d32f2f;
-          transform: scale(1.05);
         }
 
         .card-footer {
@@ -951,21 +856,21 @@ const ReviewData = ({
 
         .confidence-bar {
           flex: 1;
-          height: 6px;
+          height: 4px;
           background: #e0e0e0;
-          border-radius: 3px;
+          border-radius: 2px;
           overflow: hidden;
         }
 
         .confidence-fill {
           height: 100%;
-          transition: width 0.3s ease;
+          transition: width 0.2s ease;
         }
 
         .confidence-text {
-          font-size: 0.8rem;
+          font-size: 0.65rem;
           color: #666;
-          min-width: 80px;
+          min-width: 40px;
           text-align: right;
         }
 
@@ -979,101 +884,100 @@ const ReviewData = ({
 
         .images-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-          gap: 1rem;
-          margin-top: 1rem;
+          grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+          gap: 0.5rem;
+          margin-top: 0.5rem;
         }
 
         .image-card {
           text-align: center;
           background: #f8f9fa;
-          padding: 0.75rem;
-          border-radius: 6px;
-          transition: transform 0.2s ease;
+          padding: 0.35rem;
+          border-radius: 4px;
+          transition: transform 0.15s ease;
         }
 
         .image-card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+          transform: translateY(-1px);
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .image-card h4 {
-          margin: 0 0 0.5rem;
+          margin: 0 0 0.25rem;
           color: #666;
-          font-size: 0.9rem;
+          font-size: 0.7rem;
           font-weight: 600;
         }
 
         .image-card img {
           width: 100%;
-          max-height: 120px; /* Allow taller images to be visible without taking too much space */
-          object-fit: contain; /* Ensure the whole image is visible without cropping */
+          max-height: 120px;
+          object-fit: contain;
           border-radius: 4px;
           border: 1px solid #e0e0e0;
-          background: #f0f0f0; /* Slight gray background to distinguish boundaries of transparent/white images */
+          background: #f0f0f0;
         }
 
         .review-actions {
           display: flex;
-          gap: 1rem;
-          justify-content: center;
-          margin-top: 2rem;
+          gap: 0.5rem;
+          justify-content: stretch;
+          margin-top: 0.75rem;
           flex-wrap: wrap;
         }
 
         .button-group {
           display: flex;
-          gap: 0.5rem;
-          flex-wrap: wrap;
-          justify-content: center;
+          gap: 0.35rem;
+          flex: 1;
         }
 
         .btn {
-          padding: 0.75rem 1.5rem;
+          padding: 0.5rem 0.75rem;
           border: none;
-          border-radius: 6px;
-          font-size: 0.95rem;
+          border-radius: 5px;
+          font-size: 0.8rem;
           font-weight: 500;
           cursor: pointer;
-          transition: all 0.3s ease;
+          transition: all 0.2s ease;
           display: inline-flex;
           align-items: center;
           justify-content: center;
+          flex: 1;
+          min-height: 40px;
         }
 
         .btn-primary {
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           color: white;
-          box-shadow: 0 4px 6px rgba(102, 126, 234, 0.2);
+          box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
         }
 
         .btn-primary:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 12px rgba(102, 126, 234, 0.3);
+          transform: translateY(-1px);
+          box-shadow: 0 3px 6px rgba(102, 126, 234, 0.25);
         }
 
         .btn-warning {
           background: #FF9800;
           color: white;
-          box-shadow: 0 4px 6px rgba(255, 152, 0, 0.2);
+          box-shadow: 0 2px 4px rgba(255, 152, 0, 0.2);
         }
 
         .btn-warning:hover:not(:disabled) {
           background: #F57C00;
-          transform: translateY(-2px);
-          box-shadow: 0 6px 12px rgba(255, 152, 0, 0.3);
+          transform: translateY(-1px);
         }
 
         .btn-secondary {
           background: white;
           color: #333;
           border: 1px solid #ddd;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+          box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
 
         .btn-secondary:hover:not(:disabled) {
           background: #f5f5f5;
-          transform: translateY(-1px);
         }
 
         .btn:disabled {
@@ -1083,13 +987,13 @@ const ReviewData = ({
 
         .spinner-small {
           display: inline-block;
-          width: 20px;
-          height: 20px;
+          width: 16px;
+          height: 16px;
           border: 2px solid rgba(255, 255, 255, 0.3);
           border-top-color: white;
           border-radius: 50%;
-          animation: spin 1s linear infinite;
-          margin-right: 0.5rem;
+          animation: spin 0.8s linear infinite;
+          margin-right: 0.35rem;
         }
 
         @keyframes spin {
@@ -1098,31 +1002,96 @@ const ReviewData = ({
           }
         }
 
-        @media (max-width: 768px) {
-          .review-cards {
-            grid-template-columns: 1fr;
+        /* Optimisations spécifiques très petits écrans */
+        @media (max-width: 480px) {
+          .review-container {
+            padding: 0.25rem;
           }
 
-          .review-actions {
-            flex-direction: column;
+          .review-header h2 {
+            font-size: 1.1rem;
           }
 
-          .button-group {
-            flex-direction: column;
-            width: 100%;
+          .review-subtitle {
+            font-size: 0.7rem;
+          }
+
+          .section-title {
+            font-size: 0.85rem;
+          }
+
+          .field-label {
+            font-size: 0.75rem;
+          }
+
+          .field-value {
+            font-size: 0.75rem;
           }
 
           .btn {
-            width: 100%;
+            font-size: 0.75rem;
+            padding: 0.4rem 0.5rem;
+            min-height: 36px;
           }
 
-          .card-header {
-            flex-direction: column;
-            align-items: flex-start;
+          .external-item {
+            min-width: 100px;
           }
 
           .images-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(2, 1fr);
+          }
+
+          .image-card img {
+            max-height: 100px;
+          }
+        }
+
+        /* Pour écrans entre 480px et 768px */
+        @media (min-width: 481px) and (max-width: 768px) {
+          .review-container {
+            padding: 0.5rem 1rem;
+          }
+
+          .images-grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
+
+          .image-card img {
+            max-height: 130px;
+          }
+        }
+
+        /* Ajustements desktop */
+        @media (min-width: 769px) {
+          .review-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+          }
+
+          .review-header h2 {
+            font-size: 1.5rem;
+          }
+
+          .review-subtitle {
+            font-size: 1rem;
+          }
+
+          .field-label {
+            font-size: 0.9rem;
+          }
+
+          .field-value {
+            font-size: 0.9rem;
+          }
+
+          .image-card img {
+            max-height: 180px;
+          }
+
+          .images-grid {
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
           }
         }
       `}</style>
