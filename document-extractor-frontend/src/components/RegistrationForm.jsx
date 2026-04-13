@@ -596,7 +596,7 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
                     onClick={startCamera}
                     className="btn btn-outline"
                   >
-                    🔄 Reprendre la photo
+                    🔄 Reprendre
                   </button>
                   <button 
                     type="submit" 
@@ -606,7 +606,7 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
                     {isUploading ? (
                       <><span className="spinner-small"></span> Traitement en cours...</>
                     ) : (
-                      'Continuer l\'inscription ➔'
+                      'Continuer ➔'
                     )}
                   </button>
                 </div>
