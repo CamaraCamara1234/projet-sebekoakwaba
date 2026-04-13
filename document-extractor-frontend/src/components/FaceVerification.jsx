@@ -54,16 +54,16 @@ const FaceVerification = ({
 
     if (isMobileDevice) {
       return {
-        width: { ideal: 480, min: 360, max: 720 },
-        height: { ideal: 640, min: 480, max: 1280 },
+        width: { ideal: 1920, min: 720, max: 3840 },
+        height: { ideal: 1440, min: 960, max: 2160 },
         facingMode: "user",
         aspectRatio: 0.75
       };
     }
 
     return {
-      width: 1280,
-      height: 720,
+      width: { ideal: 1920, min: 1280, max: 3840 },
+      height: { ideal: 1080, min: 720, max: 2160 },
       facingMode: "user",
     };
   };
@@ -82,18 +82,142 @@ const FaceVerification = ({
     return new File([u8arr], filename, { type: mime });
   };
 
-  const captureImage = () => {
+  // ============ UTILITAIRES DE QUALITÉ D'IMAGE ============
+  const calculateSharpness = (imageData) => {
+    const data = imageData.data;
+    const w = imageData.width;
+    const h = imageData.height;
+    let sum = 0, sumSq = 0, count = 0;
+    for (let y = 1; y < h - 1; y++) {
+      for (let x = 1; x < w - 1; x++) {
+        const idx = (y * w + x) * 4;
+        const idxUp = ((y - 1) * w + x) * 4;
+        const idxDown = ((y + 1) * w + x) * 4;
+        const idxLeft = (y * w + (x - 1)) * 4;
+        const idxRight = (y * w + (x + 1)) * 4;
+        const center = data[idx] * 0.299 + data[idx+1] * 0.587 + data[idx+2] * 0.114;
+        const up = data[idxUp] * 0.299 + data[idxUp+1] * 0.587 + data[idxUp+2] * 0.114;
+        const down = data[idxDown] * 0.299 + data[idxDown+1] * 0.587 + data[idxDown+2] * 0.114;
+        const left = data[idxLeft] * 0.299 + data[idxLeft+1] * 0.587 + data[idxLeft+2] * 0.114;
+        const right = data[idxRight] * 0.299 + data[idxRight+1] * 0.587 + data[idxRight+2] * 0.114;
+        const laplacian = up + down + left + right - 4 * center;
+        sum += laplacian;
+        sumSq += laplacian * laplacian;
+        count++;
+      }
+    }
+    const mean = sum / count;
+    return Math.max(0, (sumSq / count) - (mean * mean));
+  };
+
+  const calculateBrightness = (imageData) => {
+    const data = imageData.data;
+    let totalLuminance = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      totalLuminance += data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+    }
+    return totalLuminance / (data.length / 4);
+  };
+
+  const autoWhiteBalance = (ctx, width, height) => {
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+    let rSum = 0, gSum = 0, bSum = 0;
+    const count = data.length / 4;
+    for (let i = 0; i < data.length; i += 4) {
+      rSum += data[i];
+      gSum += data[i + 1];
+      bSum += data[i + 2];
+    }
+    const rAvg = rSum / count, gAvg = gSum / count, bAvg = bSum / count;
+    const grayAvg = (rAvg + gAvg + bAvg) / 3;
+    const rScale = grayAvg / rAvg, gScale = grayAvg / gAvg, bScale = grayAvg / bAvg;
+    if (Math.abs(rScale - 1) > 0.05 || Math.abs(gScale - 1) > 0.05 || Math.abs(bScale - 1) > 0.05) {
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = Math.min(255, Math.max(0, data[i] * rScale));
+        data[i + 1] = Math.min(255, Math.max(0, data[i + 1] * gScale));
+        data[i + 2] = Math.min(255, Math.max(0, data[i + 2] * bScale));
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+  };
+
+  const captureRawFrame = () => {
+    const video = webcamRef.current?.video;
+    if (!video || video.videoWidth === 0) return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    
+    // Check if the video is mirrored (like the webcam component)
+    if (webcamRef.current.props.mirrored) {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
+    
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return canvas;
+  };
+
+  const burstCapture = async (frameCount = 3) => {
+    const frames = [];
+    for (let i = 0; i < frameCount; i++) {
+      const canvas = captureRawFrame();
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        const cx = Math.floor(canvas.width * 0.25);
+        const cy = Math.floor(canvas.height * 0.25);
+        const cw = Math.floor(canvas.width * 0.5);
+        const ch = Math.floor(canvas.height * 0.5);
+        const centerData = ctx.getImageData(cx, cy, cw, ch);
+        frames.push({ 
+          canvas, 
+          sharpness: calculateSharpness(centerData), 
+          brightness: calculateBrightness(centerData) 
+        });
+      }
+      await new Promise(r => setTimeout(r, 100)); // petite pause
+    }
+    if (frames.length === 0) return null;
+    return frames.sort((a, b) => b.sharpness - a.sharpness)[0];
+  };
+
+  const captureImage = async () => {
     if (!webcamRef.current) {
       setError("Caméra non disponible");
       return;
     }
 
-    const imageSrc = webcamRef.current.getScreenshot();
-    if (imageSrc) {
-      setCapturedImage(imageSrc);
-      setIsCameraActive(false);
-    } else {
-      setError("Erreur lors de la capture");
+    setIsLoading(true);
+
+    try {
+      const bestFrame = await burstCapture(4); // Prend 4 images et garde la + nette
+
+      if (bestFrame) {
+        console.log(`Capture FaceVerification - Netteté: ${bestFrame.sharpness.toFixed(1)}, Luminosité: ${bestFrame.brightness.toFixed(1)}`);
+        
+        const ctx = bestFrame.canvas.getContext('2d');
+        autoWhiteBalance(ctx, bestFrame.canvas.width, bestFrame.canvas.height);
+        
+        const dataUrl = bestFrame.canvas.toDataURL('image/jpeg', 0.95);
+        setCapturedImage(dataUrl);
+        setIsCameraActive(false);
+      } else {
+        // Fallback si la capture brute échoue
+        const imageSrc = webcamRef.current.getScreenshot();
+        if (imageSrc) {
+          setCapturedImage(imageSrc);
+          setIsCameraActive(false);
+        } else {
+          setError("Erreur lors de la capture");
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Erreur de capture optimisée");
+    } finally {
+      setIsLoading(false);
     }
   };
 
