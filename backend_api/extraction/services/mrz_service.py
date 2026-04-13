@@ -338,7 +338,7 @@ def mrz_passeport_processing(mrz_code, session_id=None):
 
         list_elts = mrz_code.split(" ")
 
-        if len(list_elts) < 2:
+        if len(list_elts) < 2 and list_elts[:4] != "PCIV" and len(list_elts[1]) < 30:
             raise ValueError("Structure MRZ incorrecte")
 
         line1 = list_elts[0]
@@ -446,24 +446,57 @@ def mrz_passeport_processing(mrz_code, session_id=None):
 
         try:
             image_path = os.path.join(
-                settings.MEDIA_ROOT, 'extracted_regions', session_id, 'code.png') if session_id else None
+                settings.MEDIA_ROOT, 'extracted_regions', session_id, 'code.png'
+            ) if session_id else None
+
             if image_path and os.path.exists(image_path):
                 mrz = read_mrz(image_path)
 
                 if mrz:
 
+                    # ---------------------------
+                    # Format nom complet
+                    # ---------------------------
+                    names = (mrz.names or "").replace("<", " ").strip()
+                    surname = (mrz.surname or "").replace("<", " ").strip()
+                    fullname = f"{surname} {names}".strip()
+
+                    # ---------------------------
+                    # Format date (YYMMDD → DD.MM.YY)
+                    # ---------------------------
+                    def format_date(date_str):
+                        if not date_str or len(date_str) != 6 or not date_str.isdigit():
+                            return ""
+
+                        year = date_str[0:2]
+                        month = date_str[2:4]
+                        day = date_str[4:6]
+
+                        return f"{day}.{month}.{year}"
+
+                    date_naiss = format_date(mrz.date_of_birth)
+                    date_exp = format_date(mrz.expiration_date)
+
+                    # ---------------------------
+                    # Format sexe
+                    # ---------------------------
+                    sexe = mrz.sex if mrz.sex in ["M", "F"] else "<"
+
+                    # ---------------------------
+                    # Numéro passeport clean
+                    # ---------------------------
+                    passport_number = (mrz.number or "").replace("<", "").strip()
+
                     return {
                         "type_document": mrz.type,
                         "pays": mrz.country,
-                        "passport_number": mrz.number,
-                        "fullname": f"{mrz.names} {mrz.surname}",
+                        "passport_number": passport_number,
+                        "fullname": fullname,
                         "nationalite": mrz.nationality,
-                        "date_naiss_mrz": mrz.date_of_birth,
-                        "sexe_mrz": mrz.sex,
-                        "date_exp_mrz": mrz.expiration_date
+                        "date_naiss_mrz": date_naiss,
+                        "sexe_mrz": sexe,
+                        "date_exp_mrz": date_exp
                     }
 
         except Exception as e2:
             print(f"PassportEye error: {e2}")
-
-        return {"error": "MRZ extraction failed"}
