@@ -401,7 +401,7 @@ const FaceVerification = ({
       width: "min(250px, 70%)",
       height: "min(250px, 70%)",
       border: "3px solid rgba(76, 175, 80, 0.8)",
-      borderRadius: "50%",
+      borderRadius: "10%",
       position: "absolute",
       top: "50%",
       left: "50%",
