@@ -84,6 +84,46 @@ class ExtractZonesTexts:
         return image
 
     # -----------------------------
+    # PHOTO ENHANCEMENT FOR FACE
+    # -----------------------------
+    def _enhance_photo_for_face(self, roi):
+        """
+        Pipeline d'amélioration spécifique pour la photo d'identité extraite.
+        Optimisé pour la vérification faciale :
+        1. Upscale vers une taille minimale (pour compenser le petit ROI YOLO)
+        2. Débruitage avancé (préserve les détails du visage)
+        3. Amélioration du contraste (CLAHE)
+        4. Masque de netteté (Unsharp Mask) pour affiner les contours
+        """
+        h, w = roi.shape[:2]
+        MIN_FACE_SIZE = 300  # Taille minimale pour une bonne reconnaissance
+
+        # --- 1. Upscale si trop petit ---
+        if h < MIN_FACE_SIZE or w < MIN_FACE_SIZE:
+            scale = max(MIN_FACE_SIZE / h, MIN_FACE_SIZE / w)
+            new_w = int(w * scale)
+            new_h = int(h * scale)
+            roi = cv2.resize(roi, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
+            logger.info(f"Photo upscalée de {w}x{h} à {new_w}x{new_h}")
+
+        # --- 2. Débruitage avancé (meilleur que bilateralFilter pour les visages) ---
+        roi = cv2.fastNlMeansDenoisingColored(roi, None, h=8, hForColorComponents=8, templateWindowSize=7, searchWindowSize=21)
+
+        # --- 3. Amélioration du contraste via CLAHE sur le canal L (LAB) ---
+        lab = cv2.cvtColor(roi, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(4, 4))
+        l = clahe.apply(l)
+        lab = cv2.merge((l, a, b))
+        roi = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+
+        # --- 4. Unsharp Mask pour la netteté ---
+        gaussian = cv2.GaussianBlur(roi, (0, 0), sigmaX=2.0)
+        roi = cv2.addWeighted(roi, 1.5, gaussian, -0.5, 0)
+
+        return roi
+
+    # -----------------------------
     # EXPAND ROI
     # -----------------------------
     def _expand_roi(self, roi: np.ndarray, percent: float = 0.15) -> np.ndarray:
@@ -168,8 +208,7 @@ class ExtractZonesTexts:
 
             if label in special_labels:
                 if label == "photo":
-                    # Lissage du bruit (Denoising) avec un filtre bilatéral pour conserver la netteté des traits du visage
-                    roi = cv2.bilateralFilter(roi, d=9, sigmaColor=75, sigmaSpace=75)
+                    roi = self._enhance_photo_for_face(roi)
                 
                 cv2.imwrite(output_path, roi)
                 special_regions.append((label, output_path, confidence))

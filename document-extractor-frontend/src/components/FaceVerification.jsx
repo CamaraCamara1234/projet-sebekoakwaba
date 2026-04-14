@@ -1,7 +1,7 @@
 // components/FaceVerification.jsx
 import React, { useState, useRef, useEffect } from "react";
 import Webcam from "react-webcam";
-import { verifyFaces, advancedVerifyFaces } from "../services/api";
+import { advancedVerifyFaces } from "../services/api";
 
 const FaceVerification = ({
   referencePhoto,
