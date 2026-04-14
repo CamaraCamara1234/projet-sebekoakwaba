@@ -1061,9 +1061,9 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
         }
 
         .document-frame {
-          width: 95%;
-          max-width: 550px;
-          aspect-ratio: 3/4;
+          width: 98%;
+          max-width: 600px;
+          aspect-ratio: 1 / 1.45;
           position: relative;
         }
 
