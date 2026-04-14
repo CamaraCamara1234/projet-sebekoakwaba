@@ -107,7 +107,7 @@ class ExtractZonesTexts:
             logger.info(f"Photo upscalée de {w}x{h} à {new_w}x{new_h}")
 
         # --- 2. Débruitage avancé (meilleur que bilateralFilter pour les visages) ---
-        roi = cv2.fastNlMeansDenoisingColored(roi, None, h=8, hForColorComponents=8, templateWindowSize=7, searchWindowSize=21)
+        roi = cv2.fastNlMeansDenoisingColored(roi, None, 8, 8, 7, 21)
 
         # --- 3. Amélioration du contraste via CLAHE sur le canal L (LAB) ---
         lab = cv2.cvtColor(roi, cv2.COLOR_BGR2LAB)
@@ -207,8 +207,8 @@ class ExtractZonesTexts:
             output_path = os.path.join(self.extracted_dir, filename)
 
             if label in special_labels:
-                if label == "photo":
-                    roi = self._enhance_photo_for_face(roi)
+                # if label == "photo":
+                #     roi = self._enhance_photo_for_face(roi)
                 
                 cv2.imwrite(output_path, roi)
                 special_regions.append((label, output_path, confidence))

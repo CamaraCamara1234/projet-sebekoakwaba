@@ -1061,18 +1061,18 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
         }
 
         .document-frame {
-          width: 80%;
-          max-width: 450px;
+          width: 95%;
+          max-width: 550px;
           aspect-ratio: 3/4;
           position: relative;
         }
 
         .frame-corner {
           position: absolute;
-          width: 40px;
-          height: 40px;
-          border: 4px solid #3b82f6;
-          border-radius: 4px;
+          width: 60px;
+          height: 60px;
+          border: 5px solid #3b82f6;
+          border-radius: 6px;
         }
 
         .tl { top: 0; left: 0; border-right: none; border-bottom: none; }
