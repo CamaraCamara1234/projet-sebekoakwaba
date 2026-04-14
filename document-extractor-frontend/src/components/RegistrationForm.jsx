@@ -24,7 +24,7 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
   const [qualityScore, setQualityScore] = useState(null); // 0-100
   const [qualityLabel, setQualityLabel] = useState('');
   const [lastCaptureInfo, setLastCaptureInfo] = useState(null);
-  
+
   const webcamRef = useRef(null);
   const videoRef = useRef(null);
   const qualityIntervalRef = useRef(null);
@@ -33,17 +33,17 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
   // Configuration pour la meilleure qualité possible
   const getVideoConstraints = () => {
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
+
     // Demander la plus haute résolution possible
     if (isMobile) {
       return {
         width: { ideal: 3840, min: 1920 },
         height: { ideal: 2160, min: 1080 },
         facingMode: { exact: "environment" },
-        aspectRatio: { ideal: 4/3 }
+        aspectRatio: { ideal: 4 / 3 }
       };
     }
-    
+
     return {
       width: { ideal: 3840, min: 1920 },
       height: { ideal: 2160, min: 1080 },
@@ -127,7 +127,7 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
     // 3. Appliquer le masque: original + amount * (original - flou)
     const data = imageData.data;
     for (let i = 0; i < data.length; i += 4) {
-      data[i]     = Math.min(255, Math.max(0, originalData[i]     + amount * (originalData[i]     - blurredData[i])));
+      data[i] = Math.min(255, Math.max(0, originalData[i] + amount * (originalData[i] - blurredData[i])));
       data[i + 1] = Math.min(255, Math.max(0, originalData[i + 1] + amount * (originalData[i + 1] - blurredData[i + 1])));
       data[i + 2] = Math.min(255, Math.max(0, originalData[i + 2] + amount * (originalData[i + 2] - blurredData[i + 2])));
     }
@@ -366,21 +366,21 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
         resolve(false);
         return;
       }
-      
+
       const video = webcamRef.current.video;
-      
+
       if (video.videoWidth > 0 && video.videoHeight > 0) {
         resolve(true);
         return;
       }
-      
+
       const onLoadedMetadata = () => {
         video.removeEventListener('loadedmetadata', onLoadedMetadata);
         resolve(true);
       };
-      
+
       video.addEventListener('loadedmetadata', onLoadedMetadata);
-      
+
       // Timeout après 3 secondes
       setTimeout(() => {
         video.removeEventListener('loadedmetadata', onLoadedMetadata);
@@ -422,13 +422,13 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
 
     try {
       const hasDimensions = await waitForVideoDimensions();
-      
+
       if (!hasDimensions) {
         setCameraError('Erreur: Impossible d\'obtenir les dimensions de la vidéo');
         setIsProcessing(false);
         return;
       }
-      
+
       const video = webcamRef.current.video;
       if (!video || video.videoWidth === 0) {
         setCameraError('Erreur: Dimensions de la vidéo invalides');
@@ -499,7 +499,7 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
     const checkVideoReady = () => {
       if (webcamRef.current && webcamRef.current.video) {
         const video = webcamRef.current.video;
-        
+
         if (video.videoWidth > 0 && video.videoHeight > 0) {
           console.log(`Caméra prête - Résolution: ${video.videoWidth}x${video.videoHeight}`);
           setVideoDimensions({
@@ -513,14 +513,14 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
         }
       }
     };
-    
+
     checkVideoReady();
   }, []);
 
   const handleCameraError = (error) => {
     console.error('Erreur caméra:', error);
     let errorMessage = 'Impossible d\'accéder à la caméra. ';
-    
+
     if (error.name === 'NotAllowedError') {
       errorMessage += 'Veuillez autoriser l\'accès à la caméra.';
     } else if (error.name === 'NotFoundError') {
@@ -540,7 +540,7 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
     } else {
       errorMessage += 'Veuillez vérifier les permissions.';
     }
-    
+
     setCameraError(errorMessage);
     setShowCamera(false);
   };
@@ -555,15 +555,15 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     const newErrors = validateForm();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    
-    onSubmit({ 
-      formData, 
+
+    onSubmit({
+      formData,
       files: [photo.file]
     });
   };
@@ -589,17 +589,17 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
                     Image prête
                   </div>
                 </div>
-                
+
                 <div className="review-actions">
-                  <button 
+                  <button
                     type="button"
                     onClick={startCamera}
                     className="btn btn-outline"
                   >
                     🔄
                   </button>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="btn btn-primary"
                     disabled={isUploading || !photo}
                   >
@@ -615,7 +615,7 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
               <div className="instructions-section">
                 <div className="icon-main">📸</div>
                 <h3 className="instructions-title">Préparer votre passeport</h3>
-                
+
                 <div className="guidelines-list">
                   <div className="guideline-item">
                     <div className="guideline-icon">💡</div>
@@ -635,7 +635,7 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
                   </div>
                 </div>
 
-                <button 
+                <button
                   type="button"
                   onClick={startCamera}
                   className="btn btn-camera-start"
@@ -644,7 +644,7 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
                 </button>
               </div>
             )}
-            
+
             {errors.document && (
               <div className="error-banner">
                 ⚠️ {errors.document}
@@ -655,15 +655,15 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
           <div className="camera-fullscreen-container">
             {/* Header de la caméra avec annulation et qualité */}
             <div className="camera-top-bar">
-              <button 
-                type="button" 
-                onClick={stopCamera} 
+              <button
+                type="button"
+                onClick={stopCamera}
                 className="btn-close-camera"
                 disabled={isProcessing}
               >
                 ✕
               </button>
-              
+
               {isCameraReady && qualityScore !== null && !isProcessing && (
                 <div className={`quality-badge-live ${qualityScore >= 70 ? 'bg-good' : qualityScore >= 40 ? 'bg-medium' : 'bg-poor'}`}>
                   {qualityLabel}
@@ -685,7 +685,7 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
                 onUserMediaError={handleCameraError}
                 className="camera-video"
               />
-              
+
               {/* Guides visuels */}
               <div className="camera-guides overlay">
                 <div className="document-frame">
@@ -728,11 +728,11 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
 
             {/* Contrôles du bas */}
             <div className="camera-bottom-controls">
-               <div className="capture-instruction">
-                 {isCameraReady && !isProcessing ? "Appuyez pour capturer (stabilisation automatique)" : ""}
-               </div>
-               
-               <button 
+              <div className="capture-instruction">
+                {isCameraReady && !isProcessing ? "Appuyez pour capturer (stabilisation automatique)" : ""}
+              </div>
+
+              <button
                 type="button"
                 onClick={capturePhotoImmediate}
                 className="btn-capture-shutter"
@@ -1061,9 +1061,9 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
         }
 
         .document-frame {
-          width: 98%;
+          width: 96%;
           max-width: 600px;
-          aspect-ratio: 1 / 1.45;
+          aspect-ratio: 1 / 1.55;
           position: relative;
         }
 
