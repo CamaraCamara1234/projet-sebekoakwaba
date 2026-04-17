@@ -1,5 +1,5 @@
 // components/ReviewData.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { validationData, getSessionId, cleanDirectories } from '../services/api';
 
 const normalizeString = (str) => {
@@ -9,7 +9,7 @@ const normalizeString = (str) => {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(" ","");
+    .replace(" ", "");
 };
 
 const ReviewData = ({
@@ -44,6 +44,129 @@ const ReviewData = ({
   const [isValidating, setIsValidating] = useState(false);
   const [showCorrections, setShowCorrections] = useState(false);
   const [externalError, setExternalError] = useState(null);
+  const [hasAutoValidated, setHasAutoValidated] = useState(false);
+
+  const performValidationAPI = async (dataToValidate, isAuto) => {
+    setIsValidating(true);
+    setExternalError(null);
+    try {
+      const formDataToSend = new FormData();
+      const sessionId = getSessionId();
+      if (sessionId) {
+        formDataToSend.append('session_id', sessionId);
+      }
+      formDataToSend.append('data', JSON.stringify(dataToValidate));
+      if (extractedData?.mrz_data && extractedData.mrz_data.length > 0) {
+        formDataToSend.append('data_mrz', JSON.stringify(extractedData.mrz_data[0]));
+      } else {
+        formDataToSend.append('data_mrz', JSON.stringify({}));
+      }
+      const result = await validationData(formDataToSend);
+      setValidationResult(result);
+      const allVerified = result.data_verified &&
+        Object.values(result.data_verified).every(v => v.verified);
+      if (allVerified) {
+        const validatedData = { ...dataToValidate };
+        Object.entries(result.data_verified).forEach(([key, value]) => {
+          if (value.value) {
+            validatedData[key] = value.value;
+          }
+        });
+        if (externalData) {
+          const nomMatch = !externalData.nom ||
+            normalizeString(validatedData.nom) === normalizeString(externalData.nom);
+          const prenomMatch = !externalData.prenom ||
+            normalizeString(validatedData.prenom) === normalizeString(externalData.prenom);
+          if (!nomMatch || !prenomMatch) {
+            let errorMsg = "Divergence avec les données du système :";
+            if (!nomMatch) errorMsg += ` le nom "${validatedData.nom}" ne correspond pas à "${externalData.nom}".`;
+            if (!prenomMatch) errorMsg += ` le prénom "${validatedData.prenom}" ne correspond pas à "${externalData.prenom}".`;
+            setExternalError(errorMsg);
+            cleanDirectories();
+            if (isAuto) {
+              setEditedData(validatedData);
+            }
+            return;
+          }
+        }
+        if (!isAuto) {
+          onConfirm(validatedData, result);
+        } else {
+          setEditedData(validatedData);
+        }
+      } else {
+        setShowCorrections(true);
+        const updatedData = { ...dataToValidate };
+        let hasChanges = false;
+        Object.entries(result.data_verified || {}).forEach(([key, value]) => {
+          if (!value.verified && value.mrz_value && value.mrz_value !== updatedData[key]) {
+            updatedData[key] = value.mrz_value;
+            hasChanges = true;
+          }
+        });
+        if (hasChanges || isAuto) {
+          setEditedData(updatedData);
+        }
+      }
+    } catch (error) {
+      console.error("❌ Erreur lors de la validation:", error);
+      if (externalData) {
+        const nomMatch = !externalData.nom ||
+          normalizeString(dataToValidate.nom) === normalizeString(externalData.nom);
+        const prenomMatch = !externalData.prenom ||
+          normalizeString(dataToValidate.prenom) === normalizeString(externalData.prenom);
+        if (!nomMatch || !prenomMatch) {
+          let errorMsg = "Impossible de valider car les données ne correspondent pas au système :";
+          if (!nomMatch) errorMsg += ` le nom "${dataToValidate.nom}" vs "${externalData.nom}".`;
+          if (!prenomMatch) errorMsg += ` le prénom "${dataToValidate.prenom}" vs "${externalData.prenom}".`;
+          setExternalError(errorMsg);
+          if (isAuto) {
+            setEditedData(dataToValidate);
+          }
+          return;
+        }
+      }
+      if (!isAuto) {
+        onConfirm(dataToValidate);
+      } else {
+        setEditedData(dataToValidate);
+      }
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!hasAutoValidated) {
+      if (externalData && extractedData?.mrz_data?.[0]) {
+        setHasAutoValidated(true);
+        const mrzData = extractedData.mrz_data[0];
+        const mrzFullname = normalizeString(mrzData.fullname || '');
+        const externalNom = normalizeString(externalData.nom || '');
+        const externalPrenom = normalizeString(externalData.prenom || '');
+
+        let newData = { ...editedData };
+
+        if (externalNom && mrzFullname.includes(externalNom) && newData.nom !== externalData.nom) {
+          newData.nom = externalData.nom;
+        }
+
+        if (externalPrenom && mrzFullname.includes(externalPrenom) && newData.prenom !== externalData.prenom) {
+          newData.prenom = externalData.prenom;
+        }
+
+        performValidationAPI(newData, true);
+      } else if (!externalData || !extractedData?.mrz_data?.length) {
+        setHasAutoValidated(true);
+        performValidationAPI(editedData, true);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasAutoValidated, externalData, extractedData]);
+
+  const handleConfirmWithValidation = () => {
+    performValidationAPI(editedData, false);
+  };
 
   const extractedItems = extractedData?.extracted_data?.filter(
     item => !item.label.endsWith('_ar')
@@ -60,82 +183,6 @@ const ReviewData = ({
 
   const handleCancel = (field) => {
     setEditMode(prev => ({ ...prev, [field]: false }));
-  };
-
-  const handleConfirmWithValidation = async () => {
-    setIsValidating(true);
-    setExternalError(null);
-    try {
-      const formDataToSend = new FormData();
-      const sessionId = getSessionId();
-      if (sessionId) {
-        formDataToSend.append('session_id', sessionId);
-      }
-      formDataToSend.append('data', JSON.stringify(editedData));
-      if (extractedData?.mrz_data && extractedData.mrz_data.length > 0) {
-        formDataToSend.append('data_mrz', JSON.stringify(extractedData.mrz_data[0]));
-      } else {
-        formDataToSend.append('data_mrz', JSON.stringify({}));
-      }
-      const result = await validationData(formDataToSend);
-      setValidationResult(result);
-      const allVerified = result.data_verified &&
-        Object.values(result.data_verified).every(v => v.verified);
-      if (allVerified) {
-        const validatedData = { ...editedData };
-        Object.entries(result.data_verified).forEach(([key, value]) => {
-          if (value.value) {
-            validatedData[key] = value.value;
-          }
-        });
-        if (externalData) {
-          const nomMatch = !externalData.nom ||
-            normalizeString(validatedData.nom) === normalizeString(externalData.nom);
-          const prenomMatch = !externalData.prenom ||
-            normalizeString(validatedData.prenom) === normalizeString(externalData.prenom);
-          if (!nomMatch || !prenomMatch) {
-            let errorMsg = "Divergence avec les données du système :";
-            if (!nomMatch) errorMsg += ` le nom "${validatedData.nom}" ne correspond pas à "${externalData.nom}".`;
-            if (!prenomMatch) errorMsg += ` le prénom "${validatedData.prenom}" ne correspond pas à "${externalData.prenom}".`;
-            setExternalError(errorMsg);
-            cleanDirectories()
-            return;
-          }
-        }
-        onConfirm(validatedData, result);
-      } else {
-        setShowCorrections(true);
-        const updatedData = { ...editedData };
-        let hasChanges = false;
-        Object.entries(result.data_verified || {}).forEach(([key, value]) => {
-          if (!value.verified && value.mrz_value && value.mrz_value !== updatedData[key]) {
-            updatedData[key] = value.mrz_value;
-            hasChanges = true;
-          }
-        });
-        if (hasChanges) {
-          setEditedData(updatedData);
-        }
-      }
-    } catch (error) {
-      console.error("❌ Erreur lors de la validation:", error);
-      if (externalData) {
-        const nomMatch = !externalData.nom ||
-          normalizeString(editedData.nom) === normalizeString(externalData.nom);
-        const prenomMatch = !externalData.prenom ||
-          normalizeString(editedData.prenom) === normalizeString(externalData.prenom);
-        if (!nomMatch || !prenomMatch) {
-          let errorMsg = "Impossible de valider car les données ne correspondent pas au système :";
-          if (!nomMatch) errorMsg += ` le nom "${editedData.nom}" vs "${externalData.nom}".`;
-          if (!prenomMatch) errorMsg += ` le prénom "${editedData.prenom}" vs "${externalData.prenom}".`;
-          setExternalError(errorMsg);
-          return;
-        }
-      }
-      onConfirm(editedData);
-    } finally {
-      setIsValidating(false);
-    }
   };
 
   const getExtractedValue = (field) => {
@@ -505,7 +552,7 @@ const ReviewData = ({
                 Traitement...
               </>
             ) : (
-              'Valider et continuer'
+              'Continuer'
             )}
           </button>
         )}
