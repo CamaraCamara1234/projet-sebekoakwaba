@@ -84,6 +84,12 @@ const apiRequest = async (endpoint, options = {}) => {
     ...options
   };
 
+  // Ajouter le header ngrok pour toutes les requêtes (évite l'interception par ngrok)
+  fetchOptions.headers = {
+    'ngrok-skip-browser-warning': 'true',
+    ...(fetchOptions.headers || {})
+  };
+
   // Gestion automatique du session_id pour les requêtes POST avec FormData
   if (fetchOptions.method === 'POST' && fetchOptions.body instanceof FormData) {
     const sessionId = getSessionId();
@@ -238,7 +244,8 @@ export const loginUser = async (username, password) => {
   const response = await fetch(`${API_BASE}/api/login/`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': 'true'
     },
     body: JSON.stringify({ username, password })
   });
