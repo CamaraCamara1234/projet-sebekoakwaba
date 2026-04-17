@@ -19,7 +19,7 @@ from extraction.views import extract_regions_view, extract_regions_dual_view, ex
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.conf.urls.static import static
-from facial_recognition.views import verify_faces, clear_media_dirs, verify_face_endpoint, finalisation_process
+from facial_recognition.views import verify_faces, clear_media_dirs, verify_face_endpoint, finalisation_process, save_pending_identification
 
 urlpatterns = [
     path('extraction/', csrf_exempt(extract_regions_view), name='extraction_api'),
@@ -34,5 +34,7 @@ urlpatterns = [
          name='advenced_face_verification_api'),
     path('finalisation_process/', csrf_exempt(finalisation_process),
          name='finalisation_process_api'),
+    path('save_pending_identification/', csrf_exempt(save_pending_identification), 
+         name='save_pending_identification_api'),
     path('clear_session_files/', csrf_exempt(clear_media_dirs), name='clear_media_dirs')
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

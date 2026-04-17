@@ -208,3 +208,7 @@ FACE_RECOGNITION_CONFIG = {
     'MIN_IMAGES_PER_USER': 2,    # Minimum pour l'entraînement incrémental
     'MODEL_PATH': os.path.join(BASE_DIR, 'facial_recognition/face_models/face_model.h5')
 }
+
+# MongoDB Configuration
+MONGO_URI = 'mongodb://localhost:27017/'
+MONGO_DB_NAME = 'akwabacheckid_db'

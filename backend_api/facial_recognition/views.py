@@ -13,7 +13,9 @@ from rest_framework import status
 from .services.verify_faces_service import verify_faces_service
 import base64
 import requests
-
+import pymongo
+import datetime
+import json
 
 def image_to_base64(image_path):
     """Convertit une image en chaîne base64 avec préfixe MIME"""
@@ -348,3 +350,49 @@ def calculate_similarity(distance, DLIB_THRESHOLD=0.08):
         return 20.0
     else:  # > 0.68
         return 0.0
+
+@csrf_exempt
+def save_pending_identification(request):
+    """
+    Endpoint for saving identification data to MongoDB when status is 'en_cours'.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
+
+    try:
+        data = request.POST.dict() 
+        statut_verification = data.get('statut_verification', "en_cours")
+        
+        if statut_verification != "en_cours":
+            return JsonResponse({'message': 'Ignoré, le statut n\'est pas en_cours', 'saved': False})
+
+        # Process complex fields if any
+        for key in ['images_base64', 'mrz_data', 'extracted_data', 'data_verified']:
+            if key in data and isinstance(data[key], str):
+                try:
+                    data[key] = json.loads(data[key])
+                except Exception:
+                    pass
+                    
+        # Add timestamp
+        data['created_at'] = datetime.datetime.utcnow().isoformat()
+
+        # Connect to MongoDB
+        client = pymongo.MongoClient(getattr(settings, 'MONGO_URI', 'mongodb://localhost:27017/'))
+        db_name = getattr(settings, 'MONGO_DB_NAME', 'akwabacheckid_db')
+        db = client[db_name]
+        collection = db['identifications']
+        
+        # Insert data
+        result = collection.insert_one(data)
+        
+        logger.info(f"Session {data.get('session_id', 'N/A')} - Données en_cours sauvegardées dans MongoDB (ID: {result.inserted_id})")
+        return JsonResponse({
+            'message': 'Données sauvegardées avec succès',
+            'saved': True,
+            'id': str(result.inserted_id)
+        })
+
+    except Exception as e:
+        logger.error(f"Erreur lors de la sauvegarde MongoDB : {str(e)}")
+        return JsonResponse({'error': f'Erreur lors de la sauvegarde : {str(e)}'}, status=500)

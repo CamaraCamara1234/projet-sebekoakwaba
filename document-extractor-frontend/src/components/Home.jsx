@@ -7,6 +7,7 @@ import {
   cleanDirectories,
   clearSessionId,
   updateUserStatus,
+  savePendingData,
 } from '../services/api';
 import '../assets/styles/main.css';
 import ResultsDisplay from './ResultsDisplay';
@@ -170,6 +171,16 @@ function Home() {
     setIsProcessing(true);
 
     try {
+      if (finalData.statut_verification === 'en_cours') {
+        try {
+          await savePendingData(finalData);
+          console.log("Données sauvegardées en attente dans MongoDB.");
+        } catch (mongoErr) {
+          console.error("Erreur sauvegarde MongoDB:", mongoErr);
+          // On peut choisir de bloquer ou de continuer. Ici on continue.
+        }
+      }
+
       await updateUserStatus(finalData);
       await cleanDirectories();
       setRegistrationComplete(true);

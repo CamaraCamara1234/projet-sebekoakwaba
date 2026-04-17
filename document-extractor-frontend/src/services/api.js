@@ -1,5 +1,5 @@
-const API_BASE = 'https://checkid.akwabasebeko.com';
-// const API_BASE = 'https://jonna-unstrung-sickeningly.ngrok-free.dev';
+// const API_BASE = 'https://checkid.akwabasebeko.com';
+const API_BASE = 'https://jonna-unstrung-sickeningly.ngrok-free.dev';
 // const API_BASE = 'http://127.0.0.1:8000';
 
 const SESSION_ID_KEY = 'secureid_session_id';
@@ -178,6 +178,26 @@ export const updateUserStatus = (data) => {
   });
 
   return apiRequest('/finalisation_process/', {
+    method: 'POST',
+    body: formData
+  });
+};
+
+export const savePendingData = (data) => {
+  const formData = new FormData();
+
+  Object.keys(data).forEach(key => {
+    const value = data[key];
+    if (value !== null && value !== undefined) {
+      if (typeof value === 'object' && !(value instanceof File)) {
+        formData.append(key, JSON.stringify(value));
+      } else {
+        formData.append(key, value);
+      }
+    }
+  });
+
+  return apiRequest('/save_pending_identification/', {
     method: 'POST',
     body: formData
   });
