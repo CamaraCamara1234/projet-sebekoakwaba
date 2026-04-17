@@ -7,7 +7,9 @@ from PIL import Image
 import shutil
 import numpy as np
 import logging
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from .services.verify_faces_service import verify_faces_service
@@ -396,3 +398,67 @@ def save_pending_identification(request):
     except Exception as e:
         logger.error(f"Erreur lors de la sauvegarde MongoDB : {str(e)}")
         return JsonResponse({'error': f'Erreur lors de la sauvegarde : {str(e)}'}, status=500)
+
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def get_dashboard_data(request):
+    """
+    Endpoint for fetching 'en_cours' identifications.
+    Requires Token Authentication.
+    """
+    try:
+        client = pymongo.MongoClient(getattr(settings, 'MONGO_URI', 'mongodb://localhost:27017/'))
+        db_name = getattr(settings, 'MONGO_DB_NAME', 'akwabacheckid_db')
+        db = client[db_name]
+        collection = db['identifications']
+        
+        # Fetching documents with status "en_cours"
+        cursor = collection.find({"statut_verification": "en_cours"}).sort("created_at", -1)
+        documents = []
+        for doc in cursor:
+            doc['_id'] = str(doc['_id']) # Convert ObjectId to string
+            documents.append(doc)
+            
+        return Response({'data': documents}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"Dashboard data fetch error: {str(e)}")
+        return Response({'error': f'Erreur lors du chargement des données : {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+@csrf_exempt
+@api_view(['POST'])
+@authentication_classes([]) # No auth required to create the first admin
+@permission_classes([])
+def create_admin_view(request):
+    """
+    Endpoint to create a superuser and run migrations.
+    Useful for initializing the environment without the terminal.
+    """
+    from django.core.management import call_command
+    from django.contrib.auth.models import User
+    
+    try:
+        data = request.data
+        username = data.get('username')
+        password = data.get('password')
+        email = data.get('email', '')
+
+        if not username or not password:
+            return JsonResponse({'error': 'Veuillez fournir un username et password.'}, status=400)
+
+        # Run migrate automatically in case it wasn't done
+        try:
+            call_command('migrate')
+        except Exception as e:
+            logger.error(f"Migration error: {e}")
+            return JsonResponse({'error': f"Failed to run migrations: {e}"}, status=500)
+
+        if User.objects.filter(username=username).exists():
+            return JsonResponse({'message': 'Ce super utilisateur existe déjà.'}, status=200)
+
+        user = User.objects.create_superuser(username=username, email=email, password=password)
+        return JsonResponse({'message': f'Super utilisateur {username} créé avec succès.'}, status=201)
+
+    except Exception as e:
+        logger.error(f"Erreur création superuser: {str(e)}")
+        return JsonResponse({'error': f'Erreur lors de la création : {str(e)}'}, status=500)

@@ -230,3 +230,48 @@ export const cleanDirectories = async () => {
     clearSessionId();
   }
 };
+
+/**
+ * Connexion à l'api
+ */
+export const loginUser = async (username, password) => {
+  const response = await fetch(`${API_BASE}/api/login/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ username, password })
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.non_field_errors?.[0] || 'Erreur lors de la connexion');
+  }
+
+  // Stocker le token
+  localStorage.setItem('auth_token', data.token);
+  return data;
+};
+
+/**
+ * Récupération des données Dashboard
+ */
+export const getDashboardData = async () => {
+  const token = localStorage.getItem('auth_token');
+  if (!token) throw new Error("Non autorisé");
+
+  const response = await fetch(`${API_BASE}/api/dashboard/`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Token ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error('Erreur de récupération des données.');
+  }
+
+  return data;
+};

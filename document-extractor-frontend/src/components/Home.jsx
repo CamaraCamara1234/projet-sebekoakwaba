@@ -164,7 +164,8 @@ function Home() {
 
     const finalData = {
       ...reviewData,
-      user_id: externalData.id
+      user_id: externalData.id,
+      passeport:externalData.passeport
     };
 
     // console.log('✅ Données finales:', finalData);
@@ -198,22 +199,6 @@ function Home() {
     }
   };
 
-  // Réinitialisation complète avec nettoyage de la session
-  const resetRegistration = () => {
-    setCurrentStep(1);
-    setFormData(null);
-    setUploadedFiles(null);
-    setExtractionResults(null);
-    setReviewData(null);
-    setValidationResult(null);
-    setFaceVerificationResult(null);
-    setError(null);
-    setRegistrationComplete(false);
-    setExtractionKey(prev => prev + 1);
-
-    cleanDirectories();
-    console.log('Session réinitialisée');
-  };
 
   const goToStep = (step) => {
     if (step < currentStep) {
@@ -300,13 +285,6 @@ function Home() {
             />
 
             <div className="action-buttons">
-              {/* <button
-                onClick={resetRegistration}
-                className="btn btn-secondary"
-                disabled={isProcessing}
-              >
-                Nouvelle inscription
-              </button> */}
               <button
                 onClick={handleFinalizeRegistration}
                 disabled={isProcessing || registrationComplete}
