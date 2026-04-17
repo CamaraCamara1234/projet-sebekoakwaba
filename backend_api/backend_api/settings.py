@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-^(_3!0z=n(9i4$fz!^rtckm6g1v)zu_2q65m@)i0^823-^i31#'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 # ALLOWED_HOSTS = ["checkid.akwabasebeko.com","127.0.0.1:8000"]
 ALLOWED_HOSTS = ["*"]
@@ -46,7 +46,6 @@ INSTALLED_APPS = [
     'extraction',
     'facial_recognition',
     'rest_framework',
-    'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [
@@ -181,6 +180,7 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'ngrok-skip-browser-warning',
 ]
 
 # Pour le développement seulement :
@@ -214,8 +214,8 @@ FACE_RECOGNITION_CONFIG = {
 MONGO_URI = 'mongodb://localhost:27017/'
 MONGO_DB_NAME = 'akwabacheckid_db'
 
+# Auth custom MongoDB - pas de DRF TokenAuthentication
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
-    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [],
+    'DEFAULT_PERMISSION_CLASSES': [],
 }

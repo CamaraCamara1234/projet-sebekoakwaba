@@ -245,7 +245,8 @@ export const loginUser = async (username, password) => {
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.non_field_errors?.[0] || 'Erreur lors de la connexion');
+    // Le backend retourne { error: "..." } pour les erreurs 400
+    throw new Error(data.error || data.non_field_errors?.[0] || 'Identifiants incorrects');
   }
 
   // Stocker le token
@@ -258,19 +259,23 @@ export const loginUser = async (username, password) => {
  */
 export const getDashboardData = async () => {
   const token = localStorage.getItem('auth_token');
-  if (!token) throw new Error("Non autorisé");
+  if (!token) throw new Error('Non autorisé - token manquant');
 
   const response = await fetch(`${API_BASE}/api/dashboard/`, {
     method: 'GET',
     headers: {
       'Authorization': `Token ${token}`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': 'true'
     }
   });
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error('Erreur de récupération des données.');
+    if (response.status === 401) {
+      throw new Error('Non autorisé - veuillez vous reconnecter');
+    }
+    throw new Error(data.error || 'Erreur de récupération des données.');
   }
 
   return data;

@@ -1,15 +1,14 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-# from deepface import DeepFace
 import os
 from django.conf import settings
 from PIL import Image
 import shutil
 import numpy as np
 import logging
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.authentication import TokenAuthentication
-from rest_framework.permissions import IsAuthenticated
+import hashlib
+import secrets
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from .services.verify_faces_service import verify_faces_service
@@ -18,6 +17,28 @@ import requests
 import pymongo
 import datetime
 import json
+
+# ─── MongoDB Auth Helpers ────────────────────────────────────────────────────
+
+def get_mongo_db():
+    """Retourne la collection admin_users de MongoDB."""
+    client = pymongo.MongoClient(getattr(settings, 'MONGO_URI', 'mongodb://localhost:27017/'))
+    db = client[getattr(settings, 'MONGO_DB_NAME', 'akwabacheckid_db')]
+    return db
+
+def hash_password(password: str) -> str:
+    """Hash SHA-256 du mot de passe."""
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
+
+def verify_mongo_token(request) -> bool:
+    """Vérifie le token Bearer dans l'en-tête Authorization contre MongoDB."""
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Token '):
+        return False
+    token = auth_header.split(' ', 1)[1].strip()
+    db = get_mongo_db()
+    user = db['admin_users'].find_one({'token': token, 'is_active': True})
+    return user is not None
 
 def image_to_base64(image_path):
     """Convertit une image en chaîne base64 avec préfixe MIME"""
@@ -399,66 +420,124 @@ def save_pending_identification(request):
         logger.error(f"Erreur lors de la sauvegarde MongoDB : {str(e)}")
         return JsonResponse({'error': f'Erreur lors de la sauvegarde : {str(e)}'}, status=500)
 
-@api_view(['GET'])
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsAuthenticated])
+@csrf_exempt
 def get_dashboard_data(request):
     """
-    Endpoint for fetching 'en_cours' identifications.
-    Requires Token Authentication.
+    Endpoint pour récupérer les identifications 'en_cours'.
+    Nécessite un token MongoDB valide dans l'en-tête Authorization.
     """
+    if not verify_mongo_token(request):
+        return JsonResponse({'error': 'Non autorisé. Token invalide ou manquant.'}, status=401)
+
     try:
-        client = pymongo.MongoClient(getattr(settings, 'MONGO_URI', 'mongodb://localhost:27017/'))
-        db_name = getattr(settings, 'MONGO_DB_NAME', 'akwabacheckid_db')
-        db = client[db_name]
+        db = get_mongo_db()
         collection = db['identifications']
-        
-        # Fetching documents with status "en_cours"
+
         cursor = collection.find({"statut_verification": "en_cours"}).sort("created_at", -1)
         documents = []
         for doc in cursor:
-            doc['_id'] = str(doc['_id']) # Convert ObjectId to string
+            doc['_id'] = str(doc['_id'])
             documents.append(doc)
-            
-        return Response({'data': documents}, status=status.HTTP_200_OK)
+
+        return JsonResponse({'data': documents}, status=200)
 
     except Exception as e:
         logger.error(f"Dashboard data fetch error: {str(e)}")
-        return Response({'error': f'Erreur lors du chargement des données : {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return JsonResponse({'error': f'Erreur lors du chargement des données : {str(e)}'}, status=500)
+
+
 @csrf_exempt
-@api_view(['POST'])
-@authentication_classes([]) # No auth required to create the first admin
-@permission_classes([])
-def create_admin_view(request):
+def login_view(request):
     """
-    Endpoint to create a superuser and run migrations.
-    Useful for initializing the environment without the terminal.
+    Authentification admin via MongoDB.
+    POST { "username": "...", "password": "..." }
+    Retourne { "token": "..." }
     """
-    from django.core.management import call_command
-    from django.contrib.auth.models import User
-    
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
+
     try:
-        data = request.data
-        username = data.get('username')
-        password = data.get('password')
-        email = data.get('email', '')
+        body = json.loads(request.body.decode('utf-8'))
+        username = body.get('username', '').strip()
+        password = body.get('password', '').strip()
+    except Exception:
+        return JsonResponse({'error': 'Corps de requête JSON invalide'}, status=400)
 
-        if not username or not password:
-            return JsonResponse({'error': 'Veuillez fournir un username et password.'}, status=400)
+    if not username or not password:
+        return JsonResponse({'error': 'Username et password requis'}, status=400)
 
-        # Run migrate automatically in case it wasn't done
-        try:
-            call_command('migrate')
-        except Exception as e:
-            logger.error(f"Migration error: {e}")
-            return JsonResponse({'error': f"Failed to run migrations: {e}"}, status=500)
+    try:
+        db = get_mongo_db()
+        user = db['admin_users'].find_one({
+            'username': username,
+            'password_hash': hash_password(password),
+            'is_active': True
+        })
 
-        if User.objects.filter(username=username).exists():
-            return JsonResponse({'message': 'Ce super utilisateur existe déjà.'}, status=200)
+        if not user:
+            return JsonResponse({'error': 'Identifiants incorrects'}, status=400)
 
-        user = User.objects.create_superuser(username=username, email=email, password=password)
-        return JsonResponse({'message': f'Super utilisateur {username} créé avec succès.'}, status=201)
+        # Générer un nouveau token à chaque login
+        token = secrets.token_hex(32)
+        db['admin_users'].update_one(
+            {'_id': user['_id']},
+            {'$set': {'token': token, 'last_login': datetime.datetime.utcnow().isoformat()}}
+        )
+
+        logger.info(f"Connexion admin réussie: {username}")
+        return JsonResponse({'token': token}, status=200)
 
     except Exception as e:
-        logger.error(f"Erreur création superuser: {str(e)}")
+        logger.error(f"Erreur login: {str(e)}")
+        return JsonResponse({'error': f'Erreur serveur: {str(e)}'}, status=500)
+
+
+@csrf_exempt
+def create_admin_view(request):
+    """
+    Crée un admin dans MongoDB.
+    POST { "username": "...", "password": "...", "email": "..." }
+    Protégé par un secret de création optionnel.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
+
+    try:
+        body = json.loads(request.body.decode('utf-8'))
+        username = body.get('username', '').strip()
+        password = body.get('password', '').strip()
+        email = body.get('email', '').strip()
+    except Exception:
+        return JsonResponse({'error': 'Corps de requête JSON invalide'}, status=400)
+
+    if not username or not password:
+        return JsonResponse({'error': 'Veuillez fournir un username et password.'}, status=400)
+
+    try:
+        db = get_mongo_db()
+        existing = db['admin_users'].find_one({'username': username})
+        if existing:
+            return JsonResponse({'message': 'Cet administrateur existe déjà.'}, status=200)
+
+        token = secrets.token_hex(32)
+        admin_doc = {
+            'username': username,
+            'password_hash': hash_password(password),
+            'email': email,
+            'token': token,
+            'is_active': True,
+            'is_superuser': True,
+            'created_at': datetime.datetime.utcnow().isoformat(),
+            'last_login': None
+        }
+        result = db['admin_users'].insert_one(admin_doc)
+
+        logger.info(f"Admin créé: {username} (ID: {result.inserted_id})")
+        return JsonResponse({
+            'message': f'Administrateur {username} créé avec succès.',
+            'id': str(result.inserted_id)
+        }, status=201)
+
+    except Exception as e:
+        logger.error(f"Erreur création admin: {str(e)}")
         return JsonResponse({'error': f'Erreur lors de la création : {str(e)}'}, status=500)

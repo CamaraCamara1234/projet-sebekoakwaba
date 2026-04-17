@@ -18,8 +18,11 @@ const Dashboard = () => {
       const response = await getDashboardData();
       setData(response.data || []);
     } catch (err) {
-      setError(err.message);
-      if (err.message.includes('Non autorisé')) {
+      const msg = err.message || '';
+      setError(msg);
+      // Rediriger si non autorisé (401)
+      if (msg.includes('Non autoris') || msg.includes('401') || msg.includes('autorisé')) {
+        localStorage.removeItem('auth_token');
         navigate('/login');
       }
     } finally {
