@@ -19,7 +19,7 @@ from extraction.views import extract_regions_view, extract_regions_dual_view, ex
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.conf.urls.static import static
-from facial_recognition.views import verify_faces, clear_media_dirs, verify_face_endpoint, finalisation_process, save_pending_identification, get_dashboard_data, create_admin_view, login_view
+from facial_recognition.views import verify_faces, clear_media_dirs, verify_face_endpoint, finalisation_process, save_pending_identification, get_dashboard_data, create_admin_view, login_view, get_user_details
 
 urlpatterns = [
     path('extraction/', csrf_exempt(extract_regions_view), name='extraction_api'),
@@ -42,4 +42,5 @@ urlpatterns = [
     path('api/login/', login_view, name='api_login'),
     path('api/dashboard/', get_dashboard_data, name='dashboard_api'),
     path('api/create-admin/', create_admin_view, name='create_admin_api'),
+    path('api/userDetails/<str:user_id>/', get_user_details, name='user_details_api'),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

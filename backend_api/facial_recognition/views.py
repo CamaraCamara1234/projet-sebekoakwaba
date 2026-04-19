@@ -541,3 +541,29 @@ def create_admin_view(request):
     except Exception as e:
         logger.error(f"Erreur création admin: {str(e)}")
         return JsonResponse({'error': f'Erreur lors de la création : {str(e)}'}, status=500)
+
+def get_user_details(request, user_id):
+    """
+    Endpoint pour récupérer les détails d'une identification par son _id MongoDB.
+    Nécessite un token MongoDB valide dans l'en-tête Authorization.
+    """
+    if not verify_mongo_token(request):
+        return JsonResponse({'error': 'Non autorisé. Token invalide ou manquant.'}, status=401)
+
+    try:
+        from bson import ObjectId
+
+        db = get_mongo_db()
+        collection = db['identifications']
+
+        doc = collection.find_one({'_id': ObjectId(user_id)})
+        if not doc:
+            return JsonResponse({'error': 'Identification introuvable.'}, status=404)
+
+        doc['_id'] = str(doc['_id'])
+        return JsonResponse({'data': doc}, status=200)
+
+    except Exception as e:
+        logger.error(f"User details fetch error: {str(e)}")
+        return JsonResponse({'error': f'Erreur lors du chargement des détails : {str(e)}'}, status=500)
+

@@ -1,6 +1,6 @@
 // const API_BASE = 'https://checkid.akwabasebeko.com';
-const API_BASE = 'https://jonna-unstrung-sickeningly.ngrok-free.dev';
-// const API_BASE = 'http://127.0.0.1:8000';
+// const API_BASE = 'https://jonna-unstrung-sickeningly.ngrok-free.dev';
+const API_BASE = 'http://127.0.0.1:8000';
 
 const SESSION_ID_KEY = 'secureid_session_id';
 
@@ -287,3 +287,27 @@ export const getDashboardData = async () => {
 
   return data;
 };
+
+export const get_user_details = async(id)=>{
+  const token = localStorage.getItem('auth_token');
+  if (!token) throw new Error('Non autorisé - token manquant');
+
+  const response = await fetch(`${API_BASE}/api/userDetails/${id}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Token ${token}`,
+      'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': 'true'
+    }
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error('Non autorisé - veuillez vous reconnecter');
+    }
+    throw new Error(data.error || 'Erreur de récupération des données.');
+  }
+
+  return data;
+}
