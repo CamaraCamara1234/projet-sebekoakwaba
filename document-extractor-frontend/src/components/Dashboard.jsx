@@ -499,8 +499,12 @@ const Dashboard = () => {
                       <span className="dash-field-value">{selectedUser.date_expiration || '—'}</span>
                     </div>
                     <div className="dash-modal-field">
-                      <span className="dash-field-label">Motif de séjour</span>
-                      <span className="dash-field-value">{selectedUser.motif_sejour || '—'}</span>
+                      <span className="dash-field-label">Nationalité</span>
+                      <span className="dash-field-value">{selectedUser.nationalite || '—'}</span>
+                    </div>
+                    <div className="dash-modal-field">
+                      <span className="dash-field-label">Lieu de Naissance</span>
+                      <span className="dash-field-value">{selectedUser.lieu_naissance || '—'}</span>
                     </div>
                     <div className="dash-modal-field">
                       <span className="dash-field-label">Statut</span>
