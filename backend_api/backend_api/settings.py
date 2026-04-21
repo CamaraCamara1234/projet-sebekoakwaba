@@ -12,6 +12,10 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,10 +25,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-^(_3!0z=n(9i4$fz!^rtckm6g1v)zu_2q65m@)i0^823-^i31#'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-^(_3!0z=n(9i4$fz!^rtckm6g1v)zu_2q65m@)i0^823-^i31#')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() in ('true', '1', 't')
 
 # ALLOWED_HOSTS = ["checkid.akwabasebeko.com","127.0.0.1:8000"]
 ALLOWED_HOSTS = ["*"]
@@ -191,17 +195,6 @@ CORS_ALLOW_CREDENTIALS = True
 DATA_UPLOAD_MAX_MEMORY_SIZE = 52428800  # 50MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 52428800
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'face_authentication',
-#         'USER': 'root',
-#         'PASSWORD': 'root',
-#         'HOST': 'localhost',
-#         'PORT': '3307',
-#     }
-# }
-
 
 # Ajoutez dans votre settings.py
 FACE_RECOGNITION_CONFIG = {
@@ -211,11 +204,20 @@ FACE_RECOGNITION_CONFIG = {
 }
 
 # MongoDB Configuration
-MONGO_URI = 'mongodb://localhost:27017/'
-MONGO_DB_NAME = 'akwabacheckid_db'
+MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017/')
+MONGO_DB_NAME = os.getenv('MONGO_DB_NAME', 'akwabacheckid_db')
 
 # Auth custom MongoDB - pas de DRF TokenAuthentication
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [],
     'DEFAULT_PERMISSION_CLASSES': [],
 }
+
+API_KEY_AKWABA = os.getenv('API_KEY_AKWABA', 'a7f3d2e9b1c84f6a2d5e8b3c7f1a4d9e2b6c8f3a1d7e4b2c9f5a3d8e1b6c4f7')
+
+# ─── JWT Configuration ──────────────────────────────────────────────────────
+# En production, utilisez une variable d'environnement
+JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', SECRET_KEY + '_jwt_signing_key')
+JWT_ALGORITHM = 'HS256'
+JWT_ACCESS_TOKEN_LIFETIME_MINUTES = int(os.getenv('JWT_ACCESS_TOKEN_LIFETIME_MINUTES', 30))
+JWT_REFRESH_TOKEN_LIFETIME_DAYS = int(os.getenv('JWT_REFRESH_TOKEN_LIFETIME_DAYS', 7))

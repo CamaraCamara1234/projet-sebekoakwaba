@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    image: camaracamara1234/akwaba-sebeko-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - media_data:/app/backend_api/media
+    environment:
+      - DJANGO_DEBUG=False
+      - MONGO_URI=mongodb://mongodb:27017/
+      - MONGO_DB_NAME=akwabacheckid_db
+      - DJANGO_SECRET_KEY=C3s5EKEHYFyf1oeyhm9MzPbBc2FGWRwW4fhVa9gz8Hjop3TniK-BuJqH_2Aoak9co0fb2QZaFk8w-Wwj7fq7YA
+      - JWT_SECRET_KEY=83SDQEevRIt9l_7PC_6tE4DTVPP5kFbH22RWmHrlQpPm6IfRhfg-87g2sIxc51WeggtQEHz7P7-xYwdjLc4p_Q
+      - API_KEY_AKWABA=a7f3d2e9b1c84f6a2d5e8b3c7f1a4d9e2b6c8f3a1d7e4b2c9f5a3d8e1b6c4f7
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:6.0
+    ports:
+      - "27017:27017" # Optionnel : à retirer si vous ne voulez pas y accéder depuis l'hôte
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  media_data:

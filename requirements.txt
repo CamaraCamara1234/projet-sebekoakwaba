@@ -21,6 +21,8 @@ pytesseract
 passporteye
 easyocr
 pymongo
+PyJWT
+bcrypt
 
 # Face recognition
 insightface
@@ -32,3 +34,5 @@ ultralytics
 # Utils
 albumentations
 tqdm
+requests
+python-dotenv
