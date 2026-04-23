@@ -202,8 +202,8 @@ def save_pending_identification(request):
         data = request.POST.dict() 
         statut_verification = data.get('statut_verification', "en_cours")
         
-        if statut_verification != "en_cours":
-            return JsonResponse({'message': 'Ignoré, le statut n\'est pas en_cours', 'saved': False})
+        if statut_verification not in ["en_cours", "valide"]:
+            return JsonResponse({'message': 'Ignoré, le statut n\'est pas pris en charge', 'saved': False})
 
         # Process complex fields if any
         for key in ['images_base64', 'mrz_data', 'extracted_data', 'data_verified']:
@@ -249,7 +249,7 @@ def get_dashboard_data(request):
         db = get_mongo_db()
         collection = db['identifications']
 
-        cursor = collection.find({"statut_verification": "en_cours"}).sort("created_at", -1)
+        cursor = collection.find({"statut_verification": {"$in": ["en_cours", "valide"]}}).sort("created_at", -1)
         documents = []
         for doc in cursor:
             doc['_id'] = str(doc['_id'])

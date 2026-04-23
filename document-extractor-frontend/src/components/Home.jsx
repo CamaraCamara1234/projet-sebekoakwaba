@@ -172,7 +172,7 @@ function Home() {
     setIsProcessing(true);
 
     try {
-      if (finalData.statut_verification === 'en_cours') {
+      // if (finalData.statut_verification === 'en_cours') {
         try {
           await savePendingData(finalData);
           console.log("Données sauvegardées en attente dans MongoDB.");
@@ -180,7 +180,7 @@ function Home() {
           console.error("Erreur sauvegarde MongoDB:", mongoErr);
           // On peut choisir de bloquer ou de continuer. Ici on continue.
         }
-      }
+      // }
 
       await updateUserStatus(finalData);
       await cleanDirectories();

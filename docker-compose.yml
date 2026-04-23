@@ -21,8 +21,6 @@ services:
 
   mongodb:
     image: mongo:6.0
-    ports:
-      - "27017:27017" # Optionnel : à retirer si vous ne voulez pas y accéder depuis l'hôte
     volumes:
       - mongo_data:/data/db
     restart: unless-stopped
