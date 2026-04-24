@@ -20,8 +20,21 @@ logger = logging.getLogger(__name__)
 # ─── MongoDB Helpers ─────────────────────────────────────────────────────────
 
 def get_mongo_db():
-    """Retourne la base de données MongoDB."""
-    client = pymongo.MongoClient(getattr(settings, 'MONGO_URI', 'mongodb://localhost:27017/'))
+    """Retourne la base de données MongoDB avec authentification si disponible."""
+    mongo_uri = getattr(settings, 'MONGO_URI', 'mongodb://localhost:27017/')
+    username = getattr(settings, 'MONGO_USERNAME', None)
+    password = getattr(settings, 'MONGO_PASSWORD', None)
+
+    if username and password:
+        client = pymongo.MongoClient(
+            mongo_uri,
+            username=username,
+            password=password,
+            authSource='admin'
+        )
+    else:
+        client = pymongo.MongoClient(mongo_uri)
+
     db = client[getattr(settings, 'MONGO_DB_NAME', 'akwabacheckid_db')]
     return db
 

@@ -206,6 +206,9 @@ FACE_RECOGNITION_CONFIG = {
 # MongoDB Configuration
 MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017/')
 MONGO_DB_NAME = os.getenv('MONGO_DB_NAME', 'akwabacheckid_db')
+MONGO_USERNAME = os.getenv('MONGO_INITDB_ROOT_USERNAME')
+MONGO_PASSWORD = os.getenv('MONGO_INITDB_ROOT_PASSWORD')
+
 
 # Auth custom MongoDB - pas de DRF TokenAuthentication
 REST_FRAMEWORK = {

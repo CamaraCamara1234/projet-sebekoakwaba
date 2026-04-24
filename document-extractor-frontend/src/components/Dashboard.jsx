@@ -12,6 +12,7 @@ const Dashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [validating, setValidating] = useState(false);
+  const [activeTab, setActiveTab] = useState('en_cours');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -76,6 +77,10 @@ const Dashboard = () => {
   };
 
   const filteredData = data.filter((item) => {
+    const status = item.statut_verification || 'en_cours';
+    if (activeTab === 'en_cours' && status !== 'en_cours') return false;
+    if (activeTab === 'valide' && status !== 'valide') return false;
+
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -291,8 +296,25 @@ const Dashboard = () => {
         {/* Table */}
         <div className="dash-table-card">
           <div className="dash-table-header">
-            <h2 className="dash-table-title">Identifications en attente</h2>
+            <h2 className="dash-table-title">
+              {activeTab === 'en_cours' ? 'Identifications en attente' : 'Identifications validées'}
+            </h2>
             <span className="dash-table-count">{filteredData.length} résultat{filteredData.length !== 1 ? 's' : ''}</span>
+          </div>
+
+          <div className="dash-tabs-container" style={{ display: 'flex', gap: '1rem', padding: '0 24px 16px', borderBottom: '1px solid var(--dash-border)' }}>
+            <button 
+              style={{ padding: '8px 16px', border: 'none', background: activeTab === 'en_cours' ? 'var(--dash-surface-3)' : 'transparent', color: activeTab === 'en_cours' ? 'var(--dash-text)' : 'var(--dash-text-muted)', borderRadius: '6px', cursor: 'pointer', fontWeight: activeTab === 'en_cours' ? '600' : '500', transition: 'all 0.2s' }}
+              onClick={() => setActiveTab('en_cours')}
+            >
+              En attente ({data.filter(i => (i.statut_verification || 'en_cours') === 'en_cours').length})
+            </button>
+            <button 
+              style={{ padding: '8px 16px', border: 'none', background: activeTab === 'valide' ? 'var(--dash-surface-3)' : 'transparent', color: activeTab === 'valide' ? 'var(--dash-text)' : 'var(--dash-text-muted)', borderRadius: '6px', cursor: 'pointer', fontWeight: activeTab === 'valide' ? '600' : '500', transition: 'all 0.2s' }}
+              onClick={() => setActiveTab('valide')}
+            >
+              Validés ({data.filter(i => i.statut_verification === 'valide').length})
+            </button>
           </div>
 
           {filteredData.length === 0 ? (
@@ -347,9 +369,9 @@ const Dashboard = () => {
                         <span className="dash-date-text">{formatDate(item.created_at)}</span>
                       </td>
                       <td>
-                        <span className="dash-status-chip dash-status--pending">
+                        <span className={`dash-status-chip ${item.statut_verification === 'valide' ? 'dash-status--validated' : 'dash-status--pending'}`}>
                           <span className="dash-status-dot"></span>
-                          En attente
+                          {item.statut_verification === 'valide' ? 'Validé' : 'En attente'}
                         </span>
                       </td>
                       <td>
@@ -365,15 +387,17 @@ const Dashboard = () => {
                             </svg>
                             <span>Détails</span>
                           </button>
-                          <button
-                            className="dash-btn dash-btn--validate"
-                            onClick={() => handleValid(item._id)}
-                            title="Valider l'identification"
-                          >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <polyline points="20 6 9 17 4 12"/>
-                            </svg>
-                          </button>
+                          {activeTab === 'en_cours' && (
+                            <button
+                              className="dash-btn dash-btn--validate"
+                              onClick={() => handleValid(item._id)}
+                              title="Valider l'identification"
+                            >
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                              </svg>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -548,25 +572,27 @@ const Dashboard = () => {
                   <button className="dash-btn dash-btn--cancel" onClick={closeModal}>
                     Fermer
                   </button>
-                  <button
-                    className="dash-btn dash-btn--confirm"
-                    onClick={() => handleValid(selectedUser._id)}
-                    disabled={validating}
-                  >
-                    {validating ? (
-                      <>
-                        <div className="dash-btn-spinner"></div>
-                        Validation...
-                      </>
-                    ) : (
-                      <>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                        Valider l'identification
-                      </>
-                    )}
-                  </button>
+                  {selectedUser.statut_verification !== 'valide' && (
+                    <button
+                      className="dash-btn dash-btn--confirm"
+                      onClick={() => handleValid(selectedUser._id)}
+                      disabled={validating}
+                    >
+                      {validating ? (
+                        <>
+                          <div className="dash-btn-spinner"></div>
+                          Validation...
+                        </>
+                      ) : (
+                        <>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="20 6 9 17 4 12"/>
+                          </svg>
+                          Valider l'identification
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (
