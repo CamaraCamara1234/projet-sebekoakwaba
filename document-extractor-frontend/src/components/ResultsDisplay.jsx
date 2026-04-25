@@ -91,16 +91,9 @@ const ResultsDisplay = ({
       {isReviewData ? (
         <div className="review-data-display">
           <h3>Données validées</h3>
-          <div className="data-grid">
-            {Object.entries(data)
-              .filter(([key]) => !key.startsWith('photo_') && !key.includes('_url') && key !== 'date_verification' && key !== 'statut_verification' && key !== 'images_base64' && key !== 'session_id')
-              .map(([key, value]) => (
-                <div key={key} className="data-item">
-                  <span className="data-label">{formatLabel(key)}</span>
-                  <span className="data-value">{value || '-'}</span>
-                </div>
-              ))}
-          </div>
+          <DataTable
+            data={getExtractedData()}
+          />
 
           {(data.photo_reference_url || data.photo_capture_url) && (
             <div className="photo-section">
