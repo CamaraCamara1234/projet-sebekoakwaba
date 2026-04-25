@@ -306,9 +306,6 @@ const DataTable = ({ data, title }) => {
           }
 
           .info-row {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 6px;
             padding: 12px 0;
           }
 
@@ -319,8 +316,12 @@ const DataTable = ({ data, title }) => {
           }
 
           .info-value {
-            text-align: left;
-            width: 100%;
+            text-align: right;
+            font-size: 0.85rem;
+          }
+          
+          .info-label {
+            font-size: 0.75rem;
           }
 
           .e-id-footer {
