@@ -36,12 +36,12 @@ const DataTable = ({ data, title }) => {
             <h2>AUTHENTIFICATION ÉLECTRONIQUE</h2>
             <p>SYSTÈME D'IDENTIFICATION OFFICIEL</p>
           </div>
-          <div className="validation-badge">
+          {/* <div className="validation-badge">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 6L9 17l-5-5" />
             </svg>
             VÉRIFIÉ
-          </div>
+          </div> */}
         </div>
 
         <div className="e-id-alert">
@@ -59,7 +59,7 @@ const DataTable = ({ data, title }) => {
 
             return (
               <div key={category} className="e-id-section">
-                <h4 className="section-title">{category}</h4>
+                {/* <h4 className="section-title">{category}</h4> */}
                 <div className="info-list">
                   {items.map((item, index) => (
                     <div className="info-row" key={index}>
@@ -75,7 +75,7 @@ const DataTable = ({ data, title }) => {
 
         <div className="e-id-footer">
           <div className="footer-text">
-            Identifiant de vérification unique généré le {new Date().toLocaleDateString('fr-FR')} • Ce document est certifié électroniquement.
+            Identifiant de vérification unique généré le {new Date().toLocaleDateString('fr-FR')} •
           </div>
           <div className="qr-code-placeholder">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -247,7 +247,7 @@ const DataTable = ({ data, title }) => {
         }
 
         .info-label {
-          color: #546e7a;
+          color: #1577d8ff;
           font-size: 0.85rem;
           font-weight: 600;
           flex: 1;
