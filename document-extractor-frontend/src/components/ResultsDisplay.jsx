@@ -90,7 +90,7 @@ const ResultsDisplay = ({
 
       {isReviewData ? (
         <div className="review-data-display">
-          <h3>Données validées</h3>
+          {/* <h3>Données validées</h3> */}
           <DataTable
             data={getExtractedData()}
           />
