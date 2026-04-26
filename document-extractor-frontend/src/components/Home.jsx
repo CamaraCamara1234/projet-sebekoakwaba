@@ -393,11 +393,12 @@ function Home() {
       <footer className="app-footer">
         <div className="container">
           <div className="footer-content">
-            <p>© {new Date().getFullYear()} AkwabaCheckid. Tous droits réservés.</p>
+            <p>Powered by SI-ITECH © 2026. Tous droits réservés.</p>
             <div className="footer-links">
               <a href="/privacy">Confidentialité</a>
               <a href="/terms">Conditions</a>
               <a href="/help">Support</a>
+              <a href='https://akwabasebeko.com/' target='_blank'>site officiel Akwaba sebeko</a>
             </div>
           </div>
         </div>
