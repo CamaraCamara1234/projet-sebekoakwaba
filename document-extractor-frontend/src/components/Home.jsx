@@ -397,8 +397,8 @@ function Home() {
             <div className="footer-links">
               <a href="/privacy">Confidentialité</a>
               <a href="/terms">Conditions</a>
-              <a href="/help">Support</a>
-              <a href='https://akwabasebeko.com/' target='_blank'>site officiel Akwaba sebeko</a>
+              {/* <a href="/help">Support</a> */}
+              <a href='https://akwabasebeko.com/' target='_blank'>Akwaba-sebeko</a>
             </div>
           </div>
         </div>
