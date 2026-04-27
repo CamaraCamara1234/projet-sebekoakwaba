@@ -445,7 +445,7 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
         .video-wrapper {
           position: relative;
           width: 100%;
-          height: 80vh; /* Espace caméra maximal */
+          height: 60vh; /* Espace caméra réduit */
           min-height: 400px;
           display: flex; justify-content: center; align-items: center;
           overflow: hidden;
