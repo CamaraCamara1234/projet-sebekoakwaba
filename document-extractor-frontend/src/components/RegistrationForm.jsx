@@ -176,11 +176,18 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
     const hasBottomMargin = boxBottom < vidH - MARGIN_Y;
     const isCentered = hasLeftMargin && hasRightMargin && hasTopMargin && hasBottomMargin;
 
+    const isTooClose = (!hasLeftMargin && !hasRightMargin) || (!hasTopMargin && !hasBottomMargin);
+
     // Vérifier la taille
     if (boxRight - boxLeft < vidW * TARGET_WIDTH_RATIO) {
-      setStatusMessage('Rapprochez le document');
+      setStatusMessage('Caméra trop éloignée');
       consecutiveValidFramesRef.current = Math.max(0, consecutiveValidFramesRef.current - 1);
     } 
+    // Vérifier si trop proche
+    else if (isTooClose) {
+      setStatusMessage('Caméra trop proche');
+      consecutiveValidFramesRef.current = Math.max(0, consecutiveValidFramesRef.current - 1);
+    }
     // Vérifier le cadrage (marges sur les 4 côtés)
     else if (!isCentered) {
       const hint = !hasLeftMargin ? 'vers la droite' : !hasRightMargin ? 'vers la gauche' :
@@ -296,7 +303,7 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
     <div className="capture-container">
       <div className="capture-header">
         <h2>Numérisation de Pièce d'Identité</h2>
-        <p>Détection automatique par IA</p>
+        <p>Détection automatique par le système</p>
       </div>
 
       <div className="capture-body">
@@ -320,9 +327,10 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
                 <div className="icon">🪪</div>
                 <h3>Mode Scanner de Document</h3>
                 <ul>
-                  <li>Placez votre pièce d'identité dans le cadre</li>
-                  <li>L'IA s'occupe de la mise au point</li>
-                  <li>La capture est 100% automatique</li>
+                  <li>Assurez-vous que votre passeport est bien cadré.</li>
+                  <li>Assurez-vous qu’il y ait un bon éclairage.</li>
+                  <li>Le système s'occupe de la mise au point.</li>
+                  <li>La capture est 100% automatique.</li>
                 </ul>
                 <button onClick={startCamera} className="btn-primary" disabled={!isModelLoaded}>
                   {isModelLoaded ? 'Ouvrir la caméra' : 'Chargement du modèle...'}
