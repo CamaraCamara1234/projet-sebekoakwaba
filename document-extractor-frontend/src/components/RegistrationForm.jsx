@@ -167,8 +167,8 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
     const boxBottom = (bestBox.y + bestBox.h - dy) / scale;
 
     // Marge minimale requise : 8% de chaque côté du cadre vidéo
-    const MARGIN_X = vidW * 0.06;
-    const MARGIN_Y = vidH * 0.06;
+    const MARGIN_X = vidW * 0.04;
+    const MARGIN_Y = vidH * 0.04;
 
     const hasLeftMargin   = boxLeft   > MARGIN_X;
     const hasRightMargin  = boxRight  < vidW - MARGIN_X;
