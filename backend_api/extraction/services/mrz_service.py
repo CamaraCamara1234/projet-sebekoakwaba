@@ -338,7 +338,7 @@ def mrz_passeport_processing(mrz_code, session_id=None):
 
         list_elts = mrz_code.split(" ")
 
-        if len(list_elts) < 2 and list_elts[:4] != "PCIV" and len(list_elts[1]) < 30:
+        if len(list_elts) < 2 or list_elts[:4] != "PCIV" or len(list_elts[1]) < 30:
             raise ValueError("Structure MRZ incorrecte")
 
         line1 = list_elts[0]
@@ -452,7 +452,7 @@ def mrz_passeport_processing(mrz_code, session_id=None):
             if image_path and os.path.exists(image_path):
                 mrz = read_mrz(image_path)
 
-                if mrz:
+                if mrz and mrz.country == "CIV":
 
                     # ---------------------------
                     # Format nom complet
