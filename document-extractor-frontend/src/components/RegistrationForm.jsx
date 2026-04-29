@@ -65,6 +65,20 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
       }
     };
     loadModel();
+
+    // Nettoyage de la mémoire WASM lors du démontage du composant (transition vers Liveness)
+    return () => {
+      if (sessionRef.current) {
+        try {
+          // Libère la mémoire allouée au modèle ONNX
+          sessionRef.current.release();
+          sessionRef.current = null;
+          console.log("Mémoire du modèle YOLO libérée avec succès.");
+        } catch (e) {
+          console.warn("Impossible de libérer le modèle YOLO:", e);
+        }
+      }
+    };
   }, []);
 
   // Détection continue
