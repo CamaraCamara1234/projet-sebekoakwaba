@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 
-const EAR_THRESHOLD = 0.20;
-const MAR_THRESHOLD = 0.60;
-const HEAD_MOVEMENT_THRESHOLD = 0.09;
+const EAR_THRESHOLD = 0.24; // Augmenté pour capter les clignements rapides même à faible FPS
+const MAR_THRESHOLD = 0.50; // Réduit pour être plus facile à atteindre
+const HEAD_MOVEMENT_THRESHOLD = 0.07;
 
 const LEFT_EYE = [362, 385, 387, 263, 373, 380];
 const RIGHT_EYE = [33, 160, 158, 133, 153, 144];
@@ -222,20 +222,24 @@ export default function LivenessDetection({ onSuccess, onFailure }) {
       if (state.blinkCount >= 1) challengePassed = true;
     } else if (currentReq === 'LOOK_LEFT') {
       setInstruction('Tournez la tête à gauche ⬅️');
-      if (state.gazeLeftCounter >= 10) challengePassed = true;
+      if (state.gazeLeftCounter >= 5) challengePassed = true; // Réduit de 7 à 5
     } else if (currentReq === 'LOOK_RIGHT') {
       setInstruction('Tournez la tête à droite ➡️');
-      if (state.gazeRightCounter >= 10) challengePassed = true;
+      if (state.gazeRightCounter >= 5) challengePassed = true; // Réduit de 7 à 5
     } else if (currentReq === 'MOUTH_OPEN') {
       setInstruction('Ouvrez grand la bouche 😲');
       if (mar > MAR_THRESHOLD) challengePassed = true;
     } else if (currentReq === 'LOOK_STRAIGHT') {
       setInstruction("Regardez l'objectif pour la photo 📸");
-      const isCenteredX = Math.abs(nose.x - 0.5) < 0.15;
-      const isCenteredY = Math.abs(nose.y - 0.5) < 0.20;
+      // Marge de centrage légèrement assouplie
+      const isCenteredX = Math.abs(nose.x - 0.5) < 0.20;
+      const isCenteredY = Math.abs(nose.y - 0.5) < 0.25;
+      
       if (isCenteredX && isCenteredY) state.straightCounter++;
       else state.straightCounter = 0;
-      if (state.straightCounter >= 20) {
+      
+      // Réduit de 20 à 10 pour une capture plus rapide (environ 0.5s au lieu de 1s)
+      if (state.straightCounter >= 10) {
         capturePhoto();
         challengePassed = true;
       }
