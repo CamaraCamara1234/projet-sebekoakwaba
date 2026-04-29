@@ -332,14 +332,20 @@ def mrz_passeport_processing(mrz_code, session_id=None):
             mrz_code = mrz_code[0]
 
         if not mrz_code:
-            raise ValueError("MRZ vide")
+            return {"error": "MRZ vide"}
 
         mrz_code = mrz_code.strip()
 
         list_elts = mrz_code.split(" ")
 
-        if len(list_elts) < 2 or list_elts[:4] != "PCIV" or len(list_elts[1]) < 30:
-            raise ValueError("Structure MRZ incorrecte")
+        # Vérification stricte: le code doit commencer par PCIV
+        if not list_elts or not list_elts[0].startswith("PCIV"):
+            print("*"*50)
+            print("UN PASSEPORT IVOIRIEN EST NECESSAIRE !")
+            raise ValueError("UN PASSEPORT IVOIRIEN EST NECESSAIRE !")
+
+        if len(list_elts) < 2 or len(list_elts[1]) < 30:
+            raise ValueError("Structure MRZ incorrecte: longueur insuffisante")
 
         line1 = list_elts[0]
         line2 = list_elts[1]
@@ -500,3 +506,5 @@ def mrz_passeport_processing(mrz_code, session_id=None):
 
         except Exception as e2:
             print(f"PassportEye error: {e2}")
+
+        return {"error": "MRZ extraction failed"}

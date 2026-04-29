@@ -12,6 +12,7 @@ import time
 import uuid
 from passporteye import read_mrz
 import base64
+from facial_recognition.services.utils import clear_session_files
 
 
 def image_to_base64(image_path):
@@ -57,22 +58,23 @@ def handle_ocr_processing(list_files, session_id):
         best_results = {}
         mrz_data = []
 
-        # Déterminer le type de document
+        # OPTIMISATION 1: Déterminer le type de doc et les classes en une seule boucle
         doc_type = None
-        files_str = ' '.join(list_files)
-        if "ivoire_cni_verso" in files_str or "ivoire_cni_recto" in files_str:
-            doc_type = "cni"
-        elif "sejour_verso" in files_str or "sejour_recto" in files_str:
-            doc_type = "sejour"
-        elif "passeport" in files_str:
-            doc_type = "passeport"
+        recto_class = verso_class = passeport_class = None
 
-        logger.info(
-            f"Session {session_id} - Type de document détecté: {doc_type}")
-        logger.info(
-            f"Session {session_id} - Fichiers list_files: {list_files}")
-        logger.info(
-            f"Session {session_id} - Régions list_regions_name: {list_regions_name}")
+        for f in list_files:
+            if "cni" in f:
+                doc_type = "cni"
+            elif "sejour" in f:
+                doc_type = "sejour"
+            elif "passeport" in f:
+                doc_type = "passeport"
+                passeport_class = f
+                
+            if 'recto' in f:
+                recto_class = f
+            elif 'verso' in f:
+                verso_class = f
 
         for result in resultats:
             if not result.text:
@@ -111,6 +113,15 @@ def handle_ocr_processing(list_files, session_id):
                     elif doc_type == "sejour":
                         mrz_result = mrz_sejour_processing(result.text, session_id)
                     elif doc_type == "passeport":
+                        # Vérification stricte avant le traitement: le code doit commencer par PCIV
+                        mrz_text_clean = result.text.strip()
+                        if not mrz_text_clean.startswith("PCIV"):
+                            clear_session_files(session_id)
+                            return JsonResponse({
+                                "status": "error",
+                                "message": "UN PASSEPORT IVOIRIEN EST NECESSAIRE ! Le document fourni n'est pas un passeport ivoirien valide ou le code est illisible."
+                            }, status=400)
+                        
                         mrz_result = mrz_passeport_processing(
                             result.text, session_id)
 
@@ -124,15 +135,13 @@ def handle_ocr_processing(list_files, session_id):
 
         t2 = time.time()
 
-        # Remplissage des champs obligatoires manquants pour garantir une structure complète
-        all_required_labels = set()
-        for doc_key in list_files:
-            required_fields = ExtractZonesTexts.REQUIRED_FIELDS_BY_DOC.get(doc_key, set())
-            for rf in required_fields:
-                mapped_rf = map_label(rf, list_files)
-                # On ne remplit que les champs textuels (pas photo, signature, etc.)
-                if mapped_rf not in {"photo", "signature"}:
-                    all_required_labels.add(mapped_rf)
+        # OPTIMISATION 2: Utilisation d'une compréhension d'ensemble (plus rapide et lisible)
+        all_required_labels = {
+            map_label(rf, list_files) 
+            for doc_key in list_files 
+            for rf in ExtractZonesTexts.REQUIRED_FIELDS_BY_DOC.get(doc_key, set()) 
+            if map_label(rf, list_files) not in {"photo", "signature"}
+        }
 
         for req_label in all_required_labels:
             if req_label not in best_results:
@@ -144,52 +153,43 @@ def handle_ocr_processing(list_files, session_id):
                     'confidence': 0.0
                 }
 
-        # Construire les URLs avec l'ID de session
-        base_url = settings.MEDIA_URL
-
-        # Chercher les fichiers spécifiques à la session
-        recto_class = None
-        verso_class = None
-        passeport_class = None
-
-        for f in list_files:
-            if 'recto' in f:
-                recto_class = f
-            elif 'verso' in f:
-                verso_class = f
-            elif 'passeport' in f:
-                passeport_class = f
-
-        # Vérifier la présence des fichiers photo et code dans list_regions_name
         photo_exists = 'photo' in list_regions_name
         code_exists = 'code' in list_regions_name
 
-        # Vérification stricte du MRZ : si le document exige un MRZ mais qu'il est illisible ou absent
-        if 'code' in all_required_labels and len(mrz_data) == 0:
+        has_mrz_error = any("error" in m for m in mrz_data)
+        if 'code' in all_required_labels and (len(mrz_data) == 0 or has_mrz_error):
+            clear_session_files(session_id)
             return JsonResponse({
                 "status": "error",
                 "message": "Le code MRZ n'est pas bien lisible. Veuillez reprendre la photo en vous assurant qu'elle soit bien nette, sans pixelisation et sans reflets."
             }, status=400)
 
+        # OPTIMISATION 3: Pré-calcul des images en Base64 pour ne pas ouvrir/encoder les fichiers 2 fois
+        photo_b64 = image_to_base64(os.path.join(settings.MEDIA_ROOT, 'extracted_regions', session_id, 'photo.png')) if photo_exists else "N/A"
+        mrz_b64 = image_to_base64(os.path.join(settings.MEDIA_ROOT, 'extracted_regions', session_id, 'code.png')) if code_exists else "N/A"
+        cin_recto_b64 = image_to_base64(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{recto_class}.jpg")) if recto_class else "N/A"
+        cin_verso_b64 = image_to_base64(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{verso_class}.jpg")) if verso_class else "N/A"
+        passeport_img_b64 = image_to_base64(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{passeport_class}.jpg")) if passeport_class else "N/A"
+
         # Construire les URLs
         response_data = {
             "status": "success",
             "session_id": session_id,
-            "photo": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'extracted_regions', session_id, 'photo.png')) if photo_exists else "N/A",
-            "mrz_image": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'extracted_regions', session_id, 'code.png')) if code_exists else "N/A",
-            "cin_recto": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{recto_class}.jpg")) if recto_class else "N/A",
-            "cin_verso": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{verso_class}.jpg")) if verso_class else "N/A",
-            "passeport": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{passeport_class}.jpg")) if passeport_class else "N/A",
+            "photo": photo_b64,
+            "mrz_image": mrz_b64,
+            "cin_recto": cin_recto_b64,
+            "cin_verso": cin_verso_b64,
+            "passeport": passeport_img_b64,
             "extracted_data": list(best_results.values()),
             "mrz_data": mrz_data,
             "temps": round(t2 - t1, 2),
             "document_type": doc_type,
             "images_base64": {
-                "photo": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'extracted_regions', session_id, 'photo.png')) if photo_exists else "N/A",
-                "mrz": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'extracted_regions', session_id, 'code.png')) if code_exists else "N/A",
-                "cin_recto": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{recto_class}.jpg")) if recto_class else "N/A",
-                "cin_verso": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{verso_class}.jpg")) if verso_class else "N/A",
-                "passeport": image_to_base64(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{passeport_class}.jpg")) if passeport_class else "N/A"
+                "photo": photo_b64,
+                "mrz": mrz_b64,
+                "cin_recto": cin_recto_b64,
+                "cin_verso": cin_verso_b64,
+                "passeport": passeport_img_b64
             }
         }
 
@@ -201,6 +201,7 @@ def handle_ocr_processing(list_files, session_id):
         return JsonResponse(response_data, content_type='application/json')
 
     except Exception as e:
+        clear_session_files(session_id)
         logger.error(f"Session {session_id} - OCR failed: {e}", exc_info=True)
         return JsonResponse({
             "status": "error",
