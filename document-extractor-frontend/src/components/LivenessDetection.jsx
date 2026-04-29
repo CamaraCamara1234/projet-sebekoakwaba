@@ -330,7 +330,6 @@ export default function LivenessDetection({ onSuccess, onFailure }) {
               width: '55%', height: '80%',
               border: '2px solid rgba(74,222,128,0.6)',
               borderRadius: '50%',
-              boxShadow: '0 0 0 9999px rgba(0,0,0,0.45)',
               pointerEvents: 'none', zIndex: 5,
             }} />
           )}

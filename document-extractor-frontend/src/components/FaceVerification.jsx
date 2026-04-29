@@ -375,7 +375,6 @@ const FaceVerification = ({
       padding: isMobile ? "12px" : "16px",
       borderRadius: "14px",
       position: "relative",
-      backdropFilter: "blur(10px)",
     },
     boxTitle: {
       textAlign: "center",
