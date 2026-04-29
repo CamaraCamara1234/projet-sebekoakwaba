@@ -709,7 +709,6 @@ const FaceVerification = ({
       <div style={{ position:"absolute",top:"-80px",right:"-80px",width:"220px",height:"220px",borderRadius:"50%",background:"radial-gradient(circle,rgba(56,139,253,0.07) 0%,transparent 70%)",pointerEvents:"none" }} />
       <div style={{ position:"absolute",bottom:"-60px",left:"-60px",width:"180px",height:"180px",borderRadius:"50%",background:"radial-gradient(circle,rgba(188,140,255,0.06) 0%,transparent 70%)",pointerEvents:"none" }} />
       
-      <h2 style={styles.title}></h2>
       <h2 style={styles.title}>🛡️ Vérification Biométrique</h2>
 
       <div style={styles.comparison}>
@@ -735,56 +734,73 @@ const FaceVerification = ({
         {/* Live capture */}
         <div style={styles.box}>
           <p style={styles.boxTitle}>🤳 Votre photo en direct</p>
-          <div style={styles.imageContainer} ref={containerRef}>
-            {capturedImage && livenessStep === 'done' ? (
-              <img src={capturedImage} alt="Capture liveness" style={styles.capturedImage} />
+          <div 
+            style={{
+              ...styles.imageContainer,
+              height: livenessStep === 'running' ? 'auto' : (isMobile ? "200px" : "280px"),
+              background: livenessStep === 'running' ? 'transparent' : styles.imageContainer.background,
+              border: livenessStep === 'running' ? 'none' : styles.imageContainer.border
+            }} 
+            ref={containerRef}
+          >
+            {livenessStep === 'running' ? (
+              <div className="fv-anim" style={{ width: '100%' }}>
+                <div style={{ display:"flex", alignItems:"center", gap:"10px", background:"rgba(56,139,253,0.08)", border:"1px solid rgba(56,139,253,0.2)", borderRadius:"10px", padding:"10px 14px", marginBottom:"10px" }}>
+                  <span style={{ fontSize:"20px" }}>🛡️</span>
+                  <div>
+                    <p style={{ margin:0, fontWeight:600, fontSize:"13px", color:"#79c0ff" }}>Détection de vivacité active</p>
+                    <p style={{ margin:0, fontSize:"11px", color:"#8b949e" }}>Suivez les instructions affichées à l'écran</p>
+                  </div>
+                </div>
+                <LivenessDetection onSuccess={handleLivenessSuccess} onFailure={handleLivenessFailure} />
+                <button className="fv-btn-cancel" onClick={resetAll} style={{ ...styles.button, ...styles.cancelButton, marginTop:'10px', width:'100%' }}>
+                  ✕ Annuler
+                </button>
+              </div>
+            ) : capturedImage && livenessStep === 'done' ? (
+              <>
+                <img src={capturedImage} alt="Capture liveness" style={styles.capturedImage} />
+                {!showFinalMessage && (
+                  <button
+                    onClick={resetAll}
+                    className="fv-btn-secondary"
+                    style={{
+                      position: 'absolute',
+                      top: '12px',
+                      right: '12px',
+                      background: 'rgba(0,0,0,0.65)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      color: '#e6edf3',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      backdropFilter: 'blur(8px)',
+                      zIndex: 20,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                      transition: 'all 0.2s ease'
+                    }}
+                    title="Reprendre la photo"
+                  >
+                    <span>🔄</span> Reprendre
+                  </button>
+                )}
+              </>
             ) : (
               <div style={styles.placeholder}>
                 <div style={styles.placeholderIcon}>🤳</div>
                 <p style={{ margin:0, fontSize:"12px" }}>
-                  {livenessStep === 'running' ? "Analyse en cours…" : "En attente de la vérification"}
+                  En attente de la vérification
                 </p>
-              </div>
-            )}
-
-            {capturedImage && livenessStep === 'done' && !showFinalMessage && (
-              <div style={styles.controlsOverlay}>
-                <div style={{ width: isMobile ? "36px" : "40px" }}></div>
-                <div style={styles.captureMain}>
-                  <button
-                    onClick={resetAll}
-                    style={styles.btnCaptureRound}
-                    title="Reprendre"
-                  >
-                    <div style={{ ...styles.captureInner, background: "rgba(255,255,255,0.7)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      🔄
-                    </div>
-                  </button>
-                  <span style={styles.captureText}>Reprendre</span>
-                </div>
-                <div style={{ width: isMobile ? "36px" : "40px" }}></div>
               </div>
             )}
           </div>
         </div>
       </div>
-
-      {/* Liveness Detection */}
-      {livenessStep === 'running' && (
-        <div className="fv-anim" style={{ marginBottom:'16px' }}>
-          <div style={{ display:"flex", alignItems:"center", gap:"10px", background:"rgba(56,139,253,0.08)", border:"1px solid rgba(56,139,253,0.2)", borderRadius:"10px", padding:"10px 14px", marginBottom:"10px" }}>
-            <span style={{ fontSize:"20px" }}>🛡️</span>
-            <div>
-              <p style={{ margin:0, fontWeight:600, fontSize:"13px", color:"#79c0ff" }}>Détection de vivacité active</p>
-              <p style={{ margin:0, fontSize:"11px", color:"#8b949e" }}>Suivez les instructions affichées à l'écran</p>
-            </div>
-          </div>
-          <LivenessDetection onSuccess={handleLivenessSuccess} onFailure={handleLivenessFailure} />
-          <button className="fv-btn-cancel" onClick={resetAll} style={{ ...styles.button, ...styles.cancelButton, marginTop:'10px', width:'100%' }}>
-            ✕ Annuler
-          </button>
-        </div>
-      )}
 
       {/* Boutons principaux */}
       <div style={{ textAlign:"center", marginBottom:"16px" }}>
