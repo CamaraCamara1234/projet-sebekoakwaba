@@ -283,8 +283,6 @@ const FaceVerification = ({
       const verificationFunction = advancedVerifyFaces;
       const verificationResult = await verificationFunction(file);
 
-      setResult(verificationResult);
-
       if (verificationResult.dominant_emotion) {
         console.log("Émotion détectée:", verificationResult.dominant_emotion);
       }
@@ -308,9 +306,12 @@ const FaceVerification = ({
             onVerificationComplete(pendingResult);
           }
         } else {
-          setError("Votre visage semble ne pas correspondre. Veuillez bien positionner votre visage.");
+          setError("Votre visage semble ne pas correspondre au document. Veuillez réessayer.");
+          setCapturedImage(null);
+          setLivenessStep(null);
         }
       } else {
+        setResult(verificationResult);
         setAttemptCount(0);
         if (onVerificationComplete) {
           onVerificationComplete({
@@ -334,7 +335,6 @@ const FaceVerification = ({
     setError(null);
     setIsCameraActive(false);
     setLivenessStep(null);
-    setAttemptCount(0);
     setShowFinalMessage(false);
   };
 
