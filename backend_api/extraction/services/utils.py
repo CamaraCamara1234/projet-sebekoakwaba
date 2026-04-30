@@ -57,6 +57,7 @@ def handle_ocr_processing(list_files, session_id):
 
         best_results = {}
         mrz_data = []
+        mrz_text_clean = ""
 
         # OPTIMISATION 1: Déterminer le type de doc et les classes en une seule boucle
         doc_type = None
@@ -115,7 +116,9 @@ def handle_ocr_processing(list_files, session_id):
                     elif doc_type == "passeport":
                         # Vérification stricte avant le traitement: le code doit commencer par PCIV
                         mrz_text_clean = result.text.strip()
-                        if not mrz_text_clean.startswith("PCIV"):
+                        if not mrz_text_clean.startswith(("PCIV", "PC1V")):
+                            print("*"*50)
+                            print("Passeport ivoirien necessaire : ",mrz_text_clean)
                             clear_session_files(session_id)
                             return JsonResponse({
                                 "status": "error",
@@ -158,6 +161,8 @@ def handle_ocr_processing(list_files, session_id):
 
         has_mrz_error = any("error" in m for m in mrz_data)
         if 'code' in all_required_labels and (len(mrz_data) == 0 or has_mrz_error):
+            print("*"*50)
+            print("Illisibilité MRZ : ",mrz_text_clean)
             clear_session_files(session_id)
             return JsonResponse({
                 "status": "error",

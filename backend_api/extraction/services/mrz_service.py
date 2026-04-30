@@ -344,7 +344,7 @@ def mrz_passeport_processing(mrz_code, session_id=None):
             print("UN PASSEPORT IVOIRIEN EST NECESSAIRE !")
             raise ValueError("UN PASSEPORT IVOIRIEN EST NECESSAIRE !")
 
-        if len(list_elts) < 2 or len(list_elts[1]) < 30:
+        if len(list_elts) < 2 or len(list_elts[1]) < 28:
             raise ValueError("Structure MRZ incorrecte: longueur insuffisante")
 
         line1 = list_elts[0]
