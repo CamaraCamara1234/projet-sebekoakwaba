@@ -1,6 +1,6 @@
 // components/ReviewData.jsx
 import React, { useState, useEffect } from 'react';
-import { validationData, getSessionId, cleanDirectories } from '../services/api';
+import { validationData, getSessionId, cleanDirectories, API_BASE, getImageUrl } from '../services/api';
 
 const normalizeString = (str) => {
   if (!str) return '';
@@ -438,7 +438,7 @@ const ReviewData = ({
             <div className="image-card">
               <h4>Photo</h4>
               <img
-                src={extractedData.photo}
+                src={getImageUrl(extractedData.photo)}
                 alt="Photo"
                 onError={(e) => {
                   e.target.src = 'https://via.placeholder.com/150?text=Photo';
@@ -450,7 +450,7 @@ const ReviewData = ({
             <div className="image-card">
               <h4>Portrait</h4>
               <img
-                src={extractedData.photo_portrait}
+                src={getImageUrl(extractedData.photo_portrait)}
                 alt="Portrait"
                 onError={(e) => {
                   e.target.src = 'https://via.placeholder.com/150?text=Portrait';
@@ -462,7 +462,7 @@ const ReviewData = ({
             <div className="image-card">
               <h4>Recto</h4>
               <img
-                src={extractedData.cin_recto}
+                src={getImageUrl(extractedData.cin_recto)}
                 alt="Recto"
                 onError={(e) => {
                   e.target.src = 'https://via.placeholder.com/150?text=Recto';
@@ -474,7 +474,7 @@ const ReviewData = ({
             <div className="image-card">
               <h4>Verso</h4>
               <img
-                src={extractedData.cin_verso}
+                src={getImageUrl(extractedData.cin_verso)}
                 alt="Verso"
                 onError={(e) => {
                   e.target.src = 'https://via.placeholder.com/150?text=Verso';
@@ -486,7 +486,7 @@ const ReviewData = ({
             <div className="image-card">
               <h4>Passeport</h4>
               <img
-                src={extractedData.passeport}
+                src={getImageUrl(extractedData.passeport)}
                 alt="passeport"
                 onError={(e) => {
                   e.target.src = 'https://via.placeholder.com/150?text=passeport';
@@ -498,7 +498,7 @@ const ReviewData = ({
             <div className="image-card">
               <h4>MRZ</h4>
               <img
-                src={extractedData.mrz_image}
+                src={getImageUrl(extractedData.mrz_image)}
                 alt="MRZ"
                 onError={(e) => {
                   e.target.src = 'https://via.placeholder.com/150?text=MRZ';

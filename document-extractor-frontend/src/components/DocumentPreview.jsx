@@ -1,6 +1,8 @@
 /* eslint-disable jsx-a11y/img-redundant-alt */
 import React, { useEffect, useState } from "react";
 
+import { getImageUrl as apiGetImageUrl } from "../services/api";
+
 const DocumentPreview = ({ data, extractionKey }) => {
   const [images, setImages] = useState({
     cin_recto: null,
@@ -13,11 +15,12 @@ const DocumentPreview = ({ data, extractionKey }) => {
   useEffect(() => {
     // Fonction pour construire l'URL complète avec cache-busting
     const getImageUrl = (path) => {
-      if (!path || path === "N/A") return null;
-      const baseUrl = `http://localhost:8000${
-        path.startsWith("/") ? path : `/${path}`
-      }`;
-      return `${baseUrl}?t=${extractionKey}`; // Ajout du paramètre de cache
+      const url = apiGetImageUrl(path);
+      if (!url) return null;
+      if (url.startsWith('http')) {
+        return `${url}?t=${extractionKey}`;
+      }
+      return url;
     };
 
     setImages({

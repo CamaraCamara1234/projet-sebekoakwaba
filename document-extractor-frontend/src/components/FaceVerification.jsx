@@ -1,7 +1,7 @@
 // components/FaceVerification.jsx
 import React, { useState, useRef, useEffect } from "react";
 import Webcam from "react-webcam";
-import { advancedVerifyFaces } from "../services/api";
+import { advancedVerifyFaces, getImageUrl } from "../services/api";
 import LivenessDetection from "./LivenessDetection";
 
 const FaceVerification = ({
@@ -717,7 +717,7 @@ const FaceVerification = ({
           <div style={styles.imageContainer}>
             <img
               src={
-                photoUrl ||
+                getImageUrl(photoUrl) ||
                 "https://via.placeholder.com/300x200?text=Photo+de+référence"
               }
               alt="Référence"

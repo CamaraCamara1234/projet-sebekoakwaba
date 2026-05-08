@@ -99,7 +99,7 @@ def verify_face_endpoint(request):
             "threshold": result.threshold,
             "distance": result.distance,
             "message": result.message,
-            "photo_capture_base64": image_to_base64(img2_path)
+            "photo_capture_url": f"{settings.MEDIA_URL}extracted_regions/{session_id}/photo_capture.png"
         })
 
     except Exception as e:
@@ -206,12 +206,24 @@ def save_pending_identification(request):
             return JsonResponse({'message': 'Ignoré, le statut n\'est pas pris en charge', 'saved': False})
 
         # Process complex fields if any
-        for key in ['images_base64', 'mrz_data', 'extracted_data', 'data_verified']:
+        for key in ['images_paths', 'mrz_data', 'extracted_data', 'data_verified']:
             if key in data and isinstance(data[key], str):
                 try:
                     data[key] = json.loads(data[key])
                 except Exception:
                     pass
+                    
+        # Compression and archiving of images
+        if 'images_paths' in data and isinstance(data['images_paths'], dict):
+            session_id = data.get('session_id')
+            if session_id:
+                try:
+                    from .services.utils import compress_session_images
+                    compressed_paths = compress_session_images(session_id, data['images_paths'])
+                    if compressed_paths:
+                        data['images_paths'] = compressed_paths
+                except Exception as e:
+                    logger.error(f"Erreur lors de la compression des images: {e}")
                     
         # Add timestamp
         data['created_at'] = datetime.datetime.utcnow().isoformat()

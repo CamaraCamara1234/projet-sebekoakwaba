@@ -1,10 +1,18 @@
-const API_BASE = 'https://checkid.akwabasebeko.com';
+export const API_BASE = 'https://checkid.akwabasebeko.com';
 // const API_BASE = 'https://jonna-unstrung-sickeningly.ngrok-free.dev';
 // const API_BASE = 'http://127.0.0.1:8000';
 
 const SESSION_ID_KEY = 'secureid_session_id';
 const ACCESS_TOKEN_KEY = 'auth_access_token';
 const REFRESH_TOKEN_KEY = 'auth_refresh_token';
+
+export const getImageUrl = (url) => {
+  if (!url || url === 'N/A') return null;
+  if (url.startsWith('/media/')) {
+    return `${API_BASE}${url}`;
+  }
+  return url;
+};
 
 // ─── Session Helpers ────────────────────────────────────────────────────────
 

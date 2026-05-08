@@ -130,14 +130,14 @@ function Home() {
       ...reviewData,
       session_id: result.session_id || extractionResults?.session_id || localStorage.getItem('secureid_session_id'),
       statut_verification: result.status || (result.verified ? 'valide' : 'en_cours'),
-      photo_reference_url: extractionResults?.images_base64?.photo || (extractionResults?.photo ? extractionResults.photo : null),
-      photo_capture_url: result.photo_capture_base64 || result.captured_photo || null,
+      photo_reference_url: extractionResults?.images_paths?.photo || (extractionResults?.photo ? extractionResults.photo : null),
+      photo_capture_url: result.photo_capture_url || result.captured_photo || null,
       date_verification: new Date().toISOString(),
       score_confiance: result.confidence || result.similarity || 0,
       distance_faciale: result.distance || 0,
-      images_base64: {
-        ...(extractionResults?.images_base64 || {}),
-        photo_capture: result.photo_capture_base64 || null
+      images_paths: {
+        ...(extractionResults?.images_paths || {}),
+        photo_capture: result.photo_capture_url || null
       }
     };
 

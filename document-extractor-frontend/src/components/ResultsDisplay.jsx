@@ -3,6 +3,7 @@ import React from 'react';
 import DocumentPreview from './DocumentPreview';
 import DataTable from './DataTable';
 import MRZSection from './MRZSection';
+import { getImageUrl } from '../services/api';
 
 const ResultsDisplay = ({
   data,
@@ -102,13 +103,13 @@ const ResultsDisplay = ({
                 {data.photo_reference_url && (
                   <div className="photo-item">
                     <p>Référence</p>
-                    <img src={data.photo_reference_url} alt="Référence" />
+                    <img src={getImageUrl(data.photo_reference_url)} alt="Référence" />
                   </div>
                 )}
                 {data.photo_capture_url && (
                   <div className="photo-item">
                     <p>Capture</p>
-                    <img src={data.photo_capture_url} alt="Capture" />
+                    <img src={getImageUrl(data.photo_capture_url)} alt="Capture" />
                   </div>
                 )}
               </div>

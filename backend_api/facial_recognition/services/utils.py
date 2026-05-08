@@ -214,6 +214,92 @@ def image_to_base64(image_path):
         return None
 
 
+def compress_and_save_image(src_path, dest_path, quality=60):
+    """Compresse une image en JPEG et la sauvegarde au chemin de destination."""
+    try:
+        if not src_path or not os.path.exists(src_path):
+            return False
+            
+        # Créer les dossiers parents si nécessaire
+        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+        
+        # S'assurer que l'extension est .jpg pour la compression
+        if not dest_path.lower().endswith('.jpg'):
+            dest_path = os.path.splitext(dest_path)[0] + '.jpg'
+            
+        with Image.open(src_path) as img:
+            # Convertir en RGB si l'image est en mode RGBA (PNG transparent)
+            if img.mode in ('RGBA', 'P'):
+                img = img.convert('RGB')
+                
+            img.save(dest_path, 'JPEG', optimize=True, quality=quality)
+        return dest_path
+    except Exception as e:
+        logger.error(f"Erreur lors de la compression de {src_path}: {e}")
+        return False
+
+
+def compress_session_images(session_id, images_paths_dict):
+    """
+    Compresse toutes les images associées à une session, 
+    les place dans le dossier d'archivage et retourne les nouveaux chemins relatifs.
+    """
+    if not session_id or not images_paths_dict:
+        return {}
+        
+    archive_dir = getattr(settings, 'IMAGES_ARCHIVE_DIR', os.path.join(settings.MEDIA_ROOT, 'archives'))
+    session_archive_dir = os.path.join(archive_dir, session_id)
+    quality = getattr(settings, 'IMAGE_COMPRESSION_QUALITY', 60)
+    
+    new_paths = {}
+    
+    for key, rel_path in images_paths_dict.items():
+        if not rel_path or rel_path == 'N/A':
+            continue
+            
+        # Construire le chemin source absolu
+        # Le rel_path est typiquement de la forme "/media/..."
+        if rel_path.startswith(settings.MEDIA_URL):
+            # Enlever le préfixe MEDIA_URL pour avoir le chemin dans MEDIA_ROOT
+            media_rel_path = rel_path[len(settings.MEDIA_URL):]
+            src_path = os.path.join(settings.MEDIA_ROOT, media_rel_path)
+        else:
+            # Fallback
+            src_path = os.path.join(settings.BASE_DIR, rel_path.lstrip('/'))
+            
+        if not os.path.exists(src_path):
+            logger.warning(f"Fichier image introuvable pour archivage: {src_path}")
+            continue
+            
+        # Construire le chemin de destination
+        filename = os.path.basename(src_path)
+        dest_filename = f"{key}_{filename}"
+        if not dest_filename.lower().endswith('.jpg'):
+            dest_filename = os.path.splitext(dest_filename)[0] + '.jpg'
+            
+        dest_path = os.path.join(session_archive_dir, dest_filename)
+        
+        # Compresser et sauvegarder
+        saved_path = compress_and_save_image(src_path, dest_path, quality=quality)
+        
+        if saved_path:
+            # Créer l'URL relative (e.g. /media/archives/{session_id}/...)
+            # Trouver la position de 'media' dans le chemin pour construire l'URL correctement
+            media_index = saved_path.find(os.path.normpath('/media/'))
+            if media_index == -1:
+                media_index = saved_path.find(os.path.normpath('\\media\\'))
+                
+            if media_index != -1:
+                # Extraire à partir de "/media/..." et normaliser avec des slash
+                url_path = saved_path[media_index:].replace('\\', '/')
+                new_paths[key] = url_path
+            else:
+                # Fallback simple
+                new_paths[key] = f"{settings.MEDIA_URL}archives/{session_id}/{os.path.basename(saved_path)}"
+                
+    return new_paths
+
+
 def clear_session_files(session_id):
     """
     Nettoie uniquement les fichiers d'une session spécifique

@@ -169,32 +169,32 @@ def handle_ocr_processing(list_files, session_id):
                 "message": "Le code MRZ n'est pas bien lisible. Veuillez reprendre la photo en vous assurant qu'elle soit bien nette, sans pixelisation et sans reflets."
             }, status=400)
 
-        # OPTIMISATION 3: Pré-calcul des images en Base64 pour ne pas ouvrir/encoder les fichiers 2 fois
-        photo_b64 = image_to_base64(os.path.join(settings.MEDIA_ROOT, 'extracted_regions', session_id, 'photo.png')) if photo_exists else "N/A"
-        mrz_b64 = image_to_base64(os.path.join(settings.MEDIA_ROOT, 'extracted_regions', session_id, 'code.png')) if code_exists else "N/A"
-        cin_recto_b64 = image_to_base64(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{recto_class}.jpg")) if recto_class else "N/A"
-        cin_verso_b64 = image_to_base64(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{verso_class}.jpg")) if verso_class else "N/A"
-        passeport_img_b64 = image_to_base64(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{passeport_class}.jpg")) if passeport_class else "N/A"
+        # OPTIMISATION 3: Pré-calcul des URLs des images
+        photo_url = get_session_regions_url(session_id, 'photo') if photo_exists else "N/A"
+        mrz_url = get_session_regions_url(session_id, 'code') if code_exists else "N/A"
+        cin_recto_url = get_session_preprocessed_url(session_id, recto_class) if recto_class else "N/A"
+        cin_verso_url = get_session_preprocessed_url(session_id, verso_class) if verso_class else "N/A"
+        passeport_img_url = get_session_preprocessed_url(session_id, passeport_class) if passeport_class else "N/A"
 
         # Construire les URLs
         response_data = {
             "status": "success",
             "session_id": session_id,
-            "photo": photo_b64,
-            "mrz_image": mrz_b64,
-            "cin_recto": cin_recto_b64,
-            "cin_verso": cin_verso_b64,
-            "passeport": passeport_img_b64,
+            "photo": photo_url,
+            "mrz_image": mrz_url,
+            "cin_recto": cin_recto_url,
+            "cin_verso": cin_verso_url,
+            "passeport": passeport_img_url,
             "extracted_data": list(best_results.values()),
             "mrz_data": mrz_data,
             "temps": round(t2 - t1, 2),
             "document_type": doc_type,
-            "images_base64": {
-                "photo": photo_b64,
-                "mrz": mrz_b64,
-                "cin_recto": cin_recto_b64,
-                "cin_verso": cin_verso_b64,
-                "passeport": passeport_img_b64
+            "images_paths": {
+                "photo": photo_url,
+                "mrz": mrz_url,
+                "cin_recto": cin_recto_url,
+                "cin_verso": cin_verso_url,
+                "passeport": passeport_img_url
             }
         }
 

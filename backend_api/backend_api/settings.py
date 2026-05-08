@@ -196,6 +196,10 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 52428800  # 50MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 52428800
 
 
+# Configuration de compression et d'archivage d'images
+IMAGES_ARCHIVE_DIR = os.path.join(BASE_DIR, 'media/archives')
+IMAGE_COMPRESSION_QUALITY = 60
+
 # Ajoutez dans votre settings.py
 FACE_RECOGNITION_CONFIG = {
     'AUTO_TRAIN_THRESHOLD': 10,  # Nombre d'images pour déclencher l'entraînement
