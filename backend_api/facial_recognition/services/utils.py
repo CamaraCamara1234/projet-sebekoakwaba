@@ -197,15 +197,61 @@ def verify_mongo_token(request) -> bool:
 
 # ─── Utility Functions ───────────────────────────────────────────────────────
 
-def image_to_base64(image_path):
-    """Convertit une image en chaîne base64 avec préfixe MIME"""
+def get_image_url(image_path):
+    """Retourne l'URL relative /media/... pour un fichier image existant."""
     try:
         if not image_path or not os.path.exists(image_path):
             return None
-        
+        # Construire l'URL relative à partir du MEDIA_ROOT
+        media_root = str(settings.MEDIA_ROOT).replace('\\', '/')
+        norm_path = str(image_path).replace('\\', '/')
+        if norm_path.startswith(media_root):
+            relative = norm_path[len(media_root):].lstrip('/')
+        else:
+            # Fallback : extraire à partir de 'media/'
+            idx = norm_path.find('media/')
+            relative = norm_path[idx + len('media/'):] if idx != -1 else norm_path
+        return f"{settings.MEDIA_URL}{relative}"
+    except Exception as e:
+        logger.error(f"Erreur construction URL image: {e}")
+        return None
+
+
+def compress_and_save_image(src_path, dest_path, quality=None):
+    """
+    Compresse une image et la sauvegarde à dest_path.
+    - quality : qualité JPEG (0-100), utilise IMAGE_COMPRESSION_QUALITY par défaut.
+    - Les PNG sont converties en JPEG pour la compression.
+    Retourne dest_path si succès, None sinon.
+    """
+    if quality is None:
+        quality = getattr(settings, 'IMAGE_COMPRESSION_QUALITY', 60)
+    try:
+        if not src_path or not os.path.exists(src_path):
+            logger.warning(f"compress_and_save_image: source introuvable {src_path}")
+            return None
+        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+        with Image.open(src_path) as img:
+            # Convertir en RGB si nécessaire (PNG avec transparence, etc.)
+            if img.mode in ('RGBA', 'P', 'LA'):
+                img = img.convert('RGB')
+            # Forcer JPEG pour la compression
+            dest_jpeg = os.path.splitext(dest_path)[0] + '.jpg'
+            img.save(dest_jpeg, 'JPEG', quality=quality, optimize=True)
+            logger.info(f"Image compressée ({quality}%) : {src_path} → {dest_jpeg}")
+            return dest_jpeg
+    except Exception as e:
+        logger.error(f"Erreur compression image {src_path}: {e}")
+        return None
+
+
+def image_to_base64(image_path):
+    """[INTERNE] Convertit une image en chaîne base64 — usage limité (selfie verify_face)."""
+    try:
+        if not image_path or not os.path.exists(image_path):
+            return None
         ext = os.path.splitext(image_path)[1].lower().replace('.', '')
         if ext == 'jpg': ext = 'jpeg'
-        
         with open(image_path, "rb") as img_file:
             b64_string = base64.b64encode(img_file.read()).decode('utf-8')
             return f"data:image/{ext};base64,{b64_string}"
