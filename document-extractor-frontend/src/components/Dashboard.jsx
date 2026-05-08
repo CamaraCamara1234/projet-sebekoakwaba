@@ -3,19 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { getDashboardData, get_user_details, valid_user_profil, clearTokens } from '../services/api';
 import './Dashboard.css';
 
-const API_BASE = 'https://checkid.akwabasebeko.com';
-
-/**
- * Résout une URL d'image depuis MongoDB :
- * - Si c'est une URL absolue ou base64 → retourne tel quel
- * - Si c'est un chemin relatif /media/... → préfixe API_BASE
- */
-const getImageSrc = (value) => {
-  if (!value || value === 'N/A') return null;
-  if (value.startsWith('data:') || value.startsWith('http')) return value;
-  return `${API_BASE}${value}`;
-};
-
 const Dashboard = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -449,31 +436,28 @@ const Dashboard = () => {
             ) : selectedUser ? (
               <div className="dash-modal-body">
                 {/* Images */}
-                {(selectedUser.images_paths || selectedUser.images_base64) && (() => {
-                  const images = selectedUser.images_paths || selectedUser.images_base64;
-                  return (
+                {selectedUser.images_base64 && (
                   <div className="dash-modal-images">
-                    {images.photo && (
+                    {selectedUser.images_base64.photo && (
                       <div className="dash-modal-img-wrap">
                         <label>Photo du document</label>
-                        <img src={getImageSrc(images.photo)} alt="Photo document" />
+                        <img src={selectedUser.images_base64.photo} alt="Photo document" />
                       </div>
                     )}
-                    {images.photo_capture && (
+                    {selectedUser.images_base64.photo_capture && (
                       <div className="dash-modal-img-wrap">
                         <label>Photo selfie</label>
-                        <img src={getImageSrc(images.photo_capture)} alt="Photo selfie" />
+                        <img src={selectedUser.images_base64.photo_capture} alt="Photo selfie" />
                       </div>
                     )}
-                    {images.passeport && (
+                    {selectedUser.images_base64.passeport && (
                       <div className="dash-modal-img-wrap">
                         <label>Photo du passeport</label>
-                        <img src={getImageSrc(images.passeport)} alt="Photo passeport" />
+                        <img src={selectedUser.images_base64.passeport} alt="Photo passeport" />
                       </div>
                     )}
                   </div>
-                  );
-                })()}
+                )}
 
                 {/* Personal Info */}
                 <div className="dash-modal-section">

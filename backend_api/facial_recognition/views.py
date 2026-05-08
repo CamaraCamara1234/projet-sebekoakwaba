@@ -19,8 +19,7 @@ import datetime
 import json
 from bson import ObjectId
 from .services.utils import (
-    image_to_base64, get_image_url, compress_and_save_image,
-    get_mongo_db, verify_mongo_token, clear_session_files,
+    image_to_base64, get_mongo_db, verify_mongo_token, clear_session_files,
     set_statut, get_users, hash_password_bcrypt, verify_password_bcrypt,
     hash_password_sha256, generate_access_token, generate_refresh_token,
     decode_jwt_token, verify_jwt_token
@@ -32,56 +31,6 @@ logger = logging.getLogger(__name__)
 
 # Vue d'enregistrement
 LOCK_FILE = os.path.join(settings.BASE_DIR, 'register_user.lock')
-
-
-def _compress_session_images(session_id):
-    """
-    Compresse et archive toutes les images d'une session dans media/archives/{session_id}/.
-    - photo d'identité, MRZ, recto, verso, passeport, selfie
-    - Qualité : IMAGE_COMPRESSION_QUALITY (60% par défaut)
-    Retourne un dict { "photo": "/media/archives/.../photo.jpg", ... }
-    """
-    quality = getattr(settings, 'IMAGE_COMPRESSION_QUALITY', 60)
-    archive_dir = os.path.join(settings.MEDIA_ROOT, 'archives', session_id)
-    os.makedirs(archive_dir, exist_ok=True)
-
-    archived = {}
-
-    # 1. Régions extraites : photo + code MRZ
-    regions_dir = os.path.join(settings.MEDIA_ROOT, 'extracted_regions', session_id)
-    for label in ['photo', 'code']:
-        src = os.path.join(regions_dir, f'{label}.png')
-        if os.path.exists(src):
-            dest = os.path.join(archive_dir, f'{label}.jpg')
-            result = compress_and_save_image(src, dest, quality=quality)
-            if result:
-                archived[label] = f"{settings.MEDIA_URL}archives/{session_id}/{label}.jpg"
-
-    # 2. Images prétraitées : recto, verso, passeport
-    preprocessed_dir = os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs')
-    try:
-        prefix = f"{session_id}_"
-        for filename in os.listdir(preprocessed_dir):
-            if filename.startswith(prefix) and filename.lower().endswith('.jpg'):
-                class_name = filename.replace(prefix, '').replace('.jpg', '')
-                src = os.path.join(preprocessed_dir, filename)
-                dest = os.path.join(archive_dir, f'{class_name}.jpg')
-                result = compress_and_save_image(src, dest, quality=quality)
-                if result:
-                    archived[class_name] = f"{settings.MEDIA_URL}archives/{session_id}/{class_name}.jpg"
-    except Exception as e:
-        logger.error(f"Session {session_id} - Erreur compression preprocessed: {e}")
-
-    # 3. Photo selfie (vérification faciale)
-    selfie_src = os.path.join(settings.MEDIA_ROOT, 'extracted_regions', session_id, 'photo_capture.png')
-    if os.path.exists(selfie_src):
-        dest = os.path.join(archive_dir, 'photo_capture.jpg')
-        result = compress_and_save_image(selfie_src, dest, quality=quality)
-        if result:
-            archived['photo_capture'] = f"{settings.MEDIA_URL}archives/{session_id}/photo_capture.jpg"
-
-    logger.info(f"Session {session_id} - {len(archived)} images archivées dans {archive_dir}")
-    return archived
 
 
 @api_view(['POST'])
@@ -144,16 +93,13 @@ def verify_face_endpoint(request):
         # -----------------------------
         result = verify_faces_service(img1_path, img2_path)
 
-        # Retourner l'URL de la photo selfie (plus de base64)
-        photo_capture_url = get_image_url(img2_path)
-
         return JsonResponse({
             "similarity": result.similarity,
             "verified": result.verified,
             "threshold": result.threshold,
             "distance": result.distance,
             "message": result.message,
-            "photo_capture_url": photo_capture_url
+            "photo_capture_base64": image_to_base64(img2_path)
         })
 
     except Exception as e:
@@ -222,24 +168,6 @@ def finalisation_process(request):
                 response_data["api_extern_error"] = str(e)
 
         logger.info(f"Session {session_id} - Processus de finalisation terminé avec succès.")
-
-        # --- Compression et archivage des images de la session ---
-        if session_id and session_id != 'N/A':
-            try:
-                archived_paths = _compress_session_images(session_id)
-                response_data["images_paths"] = archived_paths
-                # Mettre à jour MongoDB si le document existe déjà (save_pending)
-                try:
-                    db = get_mongo_db()
-                    db['identifications'].update_one(
-                        {'session_id': session_id},
-                        {'$set': {'images_paths': archived_paths, 'images_archived': True}}
-                    )
-                except Exception as db_err:
-                    logger.warning(f"Session {session_id} - Mise à jour MongoDB images_paths échouée: {db_err}")
-            except Exception as comp_err:
-                logger.error(f"Session {session_id} - Erreur compression images: {comp_err}")
-
         return JsonResponse(response_data)
 
     except Exception as e:
@@ -278,27 +206,13 @@ def save_pending_identification(request):
             return JsonResponse({'message': 'Ignoré, le statut n\'est pas pris en charge', 'saved': False})
 
         # Process complex fields if any
-        for key in ['images_urls', 'images_paths', 'mrz_data', 'extracted_data', 'data_verified']:
+        for key in ['images_base64', 'mrz_data', 'extracted_data', 'data_verified']:
             if key in data and isinstance(data[key], str):
                 try:
                     data[key] = json.loads(data[key])
                 except Exception:
                     pass
-
-        # Renommer images_base64 en images_paths si présent (rétrocompat)
-        if 'images_base64' in data:
-            images_raw = data.pop('images_base64')
-            if isinstance(images_raw, str):
-                try:
-                    images_raw = json.loads(images_raw)
-                except Exception:
-                    images_raw = {}
-            # Ne garder que les URLs (ignorer les vraies chaînes base64)
-            data['images_paths'] = {
-                k: v for k, v in (images_raw.items() if isinstance(images_raw, dict) else {}.items())
-                if v and not str(v).startswith('data:')
-            }
-
+                    
         # Add timestamp
         data['created_at'] = datetime.datetime.utcnow().isoformat()
 

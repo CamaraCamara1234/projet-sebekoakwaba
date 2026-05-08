@@ -1,18 +1,6 @@
-// const API_BASE = 'https://checkid.akwabasebeko.com';
-const API_BASE = 'https://jonna-unstrung-sickeningly.ngrok-free.dev';
+const API_BASE = 'https://checkid.akwabasebeko.com';
+// const API_BASE = 'https://jonna-unstrung-sickeningly.ngrok-free.dev';
 // const API_BASE = 'http://127.0.0.1:8000';
-
-/**
- * Résout une URL d'image relative /media/... vers l'URL complète du serveur.
- * Utile pour les <img src={...}> qui reçoivent des URLs relatives du backend.
- * @param {string} url - URL relative ou absolue
- * @returns {string} URL complète
- */
-export const resolveImageUrl = (url) => {
-  if (!url || url === 'N/A') return null;
-  if (url.startsWith('data:') || url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-};
 
 const SESSION_ID_KEY = 'secureid_session_id';
 const ACCESS_TOKEN_KEY = 'auth_access_token';
@@ -368,20 +356,7 @@ export const updateUserStatus = (data) => {
   Object.keys(data).forEach(key => {
     const value = data[key];
     if (value !== null && value !== undefined) {
-      // Exclure les champs base64 bruts
-      if (key === 'images_base64') {
-        const urlsOnly = {};
-        if (typeof value === 'object' && value !== null) {
-          Object.entries(value).forEach(([imgKey, imgVal]) => {
-            if (imgVal && !String(imgVal).startsWith('data:')) {
-              urlsOnly[imgKey] = imgVal;
-            }
-          });
-        }
-        formData.append('images_paths', JSON.stringify(urlsOnly));
-        return;
-      }
-      // Pour les objets complexes, on les sérialise en JSON
+      // Pour les objets complexes (comme images_base64), on les sérialise en JSON
       if (typeof value === 'object' && !(value instanceof File)) {
         formData.append(key, JSON.stringify(value));
       } else {
@@ -402,20 +377,6 @@ export const savePendingData = (data) => {
   Object.keys(data).forEach(key => {
     const value = data[key];
     if (value !== null && value !== undefined) {
-      // Exclure les champs base64 bruts (ils ne doivent plus être envoyés en BDD)
-      if (key === 'images_base64') {
-        // Convertir en images_paths : ne garder que les URLs /media/...
-        const urlsOnly = {};
-        if (typeof value === 'object' && value !== null) {
-          Object.entries(value).forEach(([imgKey, imgVal]) => {
-            if (imgVal && !String(imgVal).startsWith('data:')) {
-              urlsOnly[imgKey] = imgVal;
-            }
-          });
-        }
-        formData.append('images_paths', JSON.stringify(urlsOnly));
-        return;
-      }
       if (typeof value === 'object' && !(value instanceof File)) {
         formData.append(key, JSON.stringify(value));
       } else {

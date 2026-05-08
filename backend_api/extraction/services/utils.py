@@ -12,13 +12,24 @@ import time
 import uuid
 from passporteye import read_mrz
 import base64
-from facial_recognition.services.utils import clear_session_files, get_image_url
+from facial_recognition.services.utils import clear_session_files
 
 
-def _get_image_url_or_na(image_path):
-    """Wrapper get_image_url qui retourne 'N/A' au lieu de None si le fichier est absent."""
-    url = get_image_url(image_path)
-    return url if url else "N/A"
+def image_to_base64(image_path):
+    """Convertit une image en chaîne base64 avec préfixe MIME"""
+    try:
+        if not image_path or not os.path.exists(image_path):
+            return "N/A"
+        
+        ext = os.path.splitext(image_path)[1].lower().replace('.', '')
+        if ext == 'jpg': ext = 'jpeg'
+        
+        with open(image_path, "rb") as img_file:
+            b64_string = base64.b64encode(img_file.read()).decode('utf-8')
+            return f"data:image/{ext};base64,{b64_string}"
+    except Exception as e:
+        logger.error(f"Erreur conversion base64: {e}")
+        return "N/A"
 
 logger = logging.getLogger(__name__)
 
@@ -158,32 +169,32 @@ def handle_ocr_processing(list_files, session_id):
                 "message": "Le code MRZ n'est pas bien lisible. Veuillez reprendre la photo en vous assurant qu'elle soit bien nette, sans pixelisation et sans reflets."
             }, status=400)
 
-        # OPTIMISATION 3: Construire les URLs /media/... (plus de base64)
-        photo_url = _get_image_url_or_na(os.path.join(settings.MEDIA_ROOT, 'extracted_regions', session_id, 'photo.png')) if photo_exists else "N/A"
-        mrz_url = _get_image_url_or_na(os.path.join(settings.MEDIA_ROOT, 'extracted_regions', session_id, 'code.png')) if code_exists else "N/A"
-        cin_recto_url = _get_image_url_or_na(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{recto_class}.jpg")) if recto_class else "N/A"
-        cin_verso_url = _get_image_url_or_na(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{verso_class}.jpg")) if verso_class else "N/A"
-        passeport_url = _get_image_url_or_na(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{passeport_class}.jpg")) if passeport_class else "N/A"
+        # OPTIMISATION 3: Pré-calcul des images en Base64 pour ne pas ouvrir/encoder les fichiers 2 fois
+        photo_b64 = image_to_base64(os.path.join(settings.MEDIA_ROOT, 'extracted_regions', session_id, 'photo.png')) if photo_exists else "N/A"
+        mrz_b64 = image_to_base64(os.path.join(settings.MEDIA_ROOT, 'extracted_regions', session_id, 'code.png')) if code_exists else "N/A"
+        cin_recto_b64 = image_to_base64(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{recto_class}.jpg")) if recto_class else "N/A"
+        cin_verso_b64 = image_to_base64(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{verso_class}.jpg")) if verso_class else "N/A"
+        passeport_img_b64 = image_to_base64(os.path.join(settings.MEDIA_ROOT, 'preprocessed_imgs', f"{session_id}_{passeport_class}.jpg")) if passeport_class else "N/A"
 
-        # Construire la réponse avec des URLs au lieu de base64
+        # Construire les URLs
         response_data = {
             "status": "success",
             "session_id": session_id,
-            "photo": photo_url,
-            "mrz_image": mrz_url,
-            "cin_recto": cin_recto_url,
-            "cin_verso": cin_verso_url,
-            "passeport": passeport_url,
+            "photo": photo_b64,
+            "mrz_image": mrz_b64,
+            "cin_recto": cin_recto_b64,
+            "cin_verso": cin_verso_b64,
+            "passeport": passeport_img_b64,
             "extracted_data": list(best_results.values()),
             "mrz_data": mrz_data,
             "temps": round(t2 - t1, 2),
             "document_type": doc_type,
-            "images_urls": {
-                "photo": photo_url,
-                "mrz": mrz_url,
-                "cin_recto": cin_recto_url,
-                "cin_verso": cin_verso_url,
-                "passeport": passeport_url
+            "images_base64": {
+                "photo": photo_b64,
+                "mrz": mrz_b64,
+                "cin_recto": cin_recto_b64,
+                "cin_verso": cin_verso_b64,
+                "passeport": passeport_img_b64
             }
         }
 
