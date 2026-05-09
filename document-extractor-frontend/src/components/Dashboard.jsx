@@ -23,6 +23,7 @@ const Dashboard = () => {
     try {
       const response = await getDashboardData();
       setData(response.data || []);
+      console.log(response.data)
     } catch (err) {
       const msg = err.message || '';
       setError(msg);
@@ -148,7 +149,7 @@ const Dashboard = () => {
         <div className="dash-sidebar-brand">
           <div className="dash-brand-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
           </div>
           <div>
@@ -160,18 +161,18 @@ const Dashboard = () => {
         <nav className="dash-sidebar-nav">
           <a href="#dashboard" className="dash-nav-item active">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="7" height="7" rx="1"/>
-              <rect x="14" y="3" width="7" height="7" rx="1"/>
-              <rect x="3" y="14" width="7" height="7" rx="1"/>
-              <rect x="14" y="14" width="7" height="7" rx="1"/>
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+              <rect x="14" y="14" width="7" height="7" rx="1" />
             </svg>
             <span>Tableau de bord</span>
           </a>
           <a href="#verifications" className="dash-nav-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="8.5" cy="7" r="4"/>
-              <polyline points="17 11 19 13 23 9"/>
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="8.5" cy="7" r="4" />
+              <polyline points="17 11 19 13 23 9" />
             </svg>
             <span>Vérifications</span>
           </a>
@@ -180,9 +181,9 @@ const Dashboard = () => {
         <div className="dash-sidebar-footer">
           <button onClick={handleLogout} className="dash-logout-btn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
             <span>Déconnexion</span>
           </button>
@@ -200,8 +201,8 @@ const Dashboard = () => {
           <div className="dash-header-right">
             <div className="dash-search-wrapper">
               <svg className="dash-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
               <input
                 type="text"
@@ -219,10 +220,10 @@ const Dashboard = () => {
           <div className="dash-stat-card">
             <div className="dash-stat-icon dash-stat-icon--total">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
               </svg>
             </div>
             <div className="dash-stat-info">
@@ -233,10 +234,10 @@ const Dashboard = () => {
           <div className="dash-stat-card">
             <div className="dash-stat-icon dash-stat-icon--today">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
               </svg>
             </div>
             <div className="dash-stat-info">
@@ -252,9 +253,9 @@ const Dashboard = () => {
           <div className="dash-stat-card">
             <div className="dash-stat-icon dash-stat-icon--passport">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="2" y="3" width="20" height="18" rx="2"/>
-                <circle cx="12" cy="10" r="3"/>
-                <path d="M7 21v-1a5 5 0 0 1 10 0v1"/>
+                <rect x="2" y="3" width="20" height="18" rx="2" />
+                <circle cx="12" cy="10" r="3" />
+                <path d="M7 21v-1a5 5 0 0 1 10 0v1" />
               </svg>
             </div>
             <div className="dash-stat-info">
@@ -267,8 +268,8 @@ const Dashboard = () => {
           <div className="dash-stat-card">
             <div className="dash-stat-icon dash-stat-icon--cin">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="2" y="5" width="20" height="14" rx="2"/>
-                <line x1="2" y1="10" x2="22" y2="10"/>
+                <rect x="2" y="5" width="20" height="14" rx="2" />
+                <line x1="2" y1="10" x2="22" y2="10" />
               </svg>
             </div>
             <div className="dash-stat-info">
@@ -284,9 +285,9 @@ const Dashboard = () => {
         {error && (
           <div className="dash-error-banner">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="12" y1="8" x2="12" y2="12"/>
-              <line x1="12" y1="16" x2="12.01" y2="16"/>
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
             <span>{error}</span>
             <button onClick={() => setError(null)} className="dash-error-dismiss">&times;</button>
@@ -303,13 +304,13 @@ const Dashboard = () => {
           </div>
 
           <div className="dash-tabs-container" style={{ display: 'flex', gap: '1rem', padding: '0 24px 16px', borderBottom: '1px solid var(--dash-border)' }}>
-            <button 
+            <button
               style={{ padding: '8px 16px', border: 'none', background: activeTab === 'en_cours' ? 'var(--dash-surface-3)' : 'transparent', color: activeTab === 'en_cours' ? 'var(--dash-text)' : 'var(--dash-text-muted)', borderRadius: '6px', cursor: 'pointer', fontWeight: activeTab === 'en_cours' ? '600' : '500', transition: 'all 0.2s' }}
               onClick={() => setActiveTab('en_cours')}
             >
               En attente ({data.filter(i => (i.statut_verification || 'en_cours') === 'en_cours').length})
             </button>
-            <button 
+            <button
               style={{ padding: '8px 16px', border: 'none', background: activeTab === 'valide' ? 'var(--dash-surface-3)' : 'transparent', color: activeTab === 'valide' ? 'var(--dash-text)' : 'var(--dash-text-muted)', borderRadius: '6px', cursor: 'pointer', fontWeight: activeTab === 'valide' ? '600' : '500', transition: 'all 0.2s' }}
               onClick={() => setActiveTab('valide')}
             >
@@ -321,9 +322,9 @@ const Dashboard = () => {
             <div className="dash-empty-state">
               <div className="dash-empty-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <polyline points="14 2 14 8 20 8"/>
-                  <line x1="9" y1="15" x2="15" y2="15"/>
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="9" y1="15" x2="15" y2="15" />
                 </svg>
               </div>
               <p className="dash-empty-title">Aucune vérification trouvée</p>
@@ -382,8 +383,8 @@ const Dashboard = () => {
                             title="Voir les détails"
                           >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                              <circle cx="12" cy="12" r="3"/>
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                              <circle cx="12" cy="12" r="3" />
                             </svg>
                             <span>Détails</span>
                           </button>
@@ -394,7 +395,7 @@ const Dashboard = () => {
                               title="Valider l'identification"
                             >
                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="20 6 9 17 4 12"/>
+                                <polyline points="20 6 9 17 4 12" />
                               </svg>
                             </button>
                           )}
@@ -422,8 +423,8 @@ const Dashboard = () => {
               </div>
               <button className="dash-modal-close" onClick={closeModal}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18"/>
-                  <line x1="6" y1="6" x2="18" y2="18"/>
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </button>
             </div>
@@ -463,8 +464,8 @@ const Dashboard = () => {
                 <div className="dash-modal-section">
                   <h3>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                      <circle cx="12" cy="7" r="4"/>
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
                     </svg>
                     Informations personnelles
                   </h3>
@@ -500,8 +501,8 @@ const Dashboard = () => {
                 <div className="dash-modal-section">
                   <h3>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="2" y="5" width="20" height="14" rx="2"/>
-                      <line x1="2" y1="10" x2="22" y2="10"/>
+                      <rect x="2" y="5" width="20" height="14" rx="2" />
+                      <line x1="2" y1="10" x2="22" y2="10" />
                     </svg>
                     Informations du document
                   </h3>
@@ -546,8 +547,8 @@ const Dashboard = () => {
                 <div className="dash-modal-section">
                   <h3>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="10"/>
-                      <polyline points="12 6 12 12 16 14"/>
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
                     </svg>
                     Métadonnées
                   </h3>
@@ -586,7 +587,7 @@ const Dashboard = () => {
                       ) : (
                         <>
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="20 6 9 17 4 12"/>
+                            <polyline points="20 6 9 17 4 12" />
                           </svg>
                           Valider l'identification
                         </>
@@ -598,9 +599,9 @@ const Dashboard = () => {
             ) : (
               <div className="dash-modal-error">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <line x1="12" y1="8" x2="12" y2="12"/>
-                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
                 <p>Impossible de charger les détails.</p>
               </div>
