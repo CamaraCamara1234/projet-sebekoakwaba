@@ -42,7 +42,7 @@ const ResultsDisplay = ({
   const getExtractedData = () => {
     if (isReviewData) {
       return Object.entries(data)
-        .filter(([key]) => !key.startsWith('photo_') && !key.includes('_url') && !key.includes('date_verification') && key !== 'statut_verification' && key !== 'images_base64' && key !== 'session_id')
+        .filter(([key]) => !key.startsWith('photo_') && !key.includes('_url') && !key.includes('date_verification') && key !== 'statut_verification' && key !== 'images_base64' && key !== 'images_paths' && key !== 'session_id')
         .map(([key, value]) => ({
           label: key,
           text: value,
