@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getDashboardData, get_user_details, valid_user_profil, clearTokens, API_BASE } from '../services/api';
+import { getDashboardData, get_user_details, valid_user_profil, clearTokens, API_BASE, getImageUrl } from '../services/api';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -441,19 +441,19 @@ const Dashboard = () => {
                     {(selectedUser.images_paths?.photo || selectedUser.images_base64?.photo) && (
                       <div className="dash-modal-img-wrap">
                         <label>Photo du document</label>
-                        <img src={selectedUser.images_paths?.photo ? `${API_BASE}${selectedUser.images_paths.photo}` : selectedUser.images_base64.photo} alt="Photo document" />
+                        <img src={getImageUrl(selectedUser.images_paths?.photo || selectedUser.images_base64?.photo)} alt="Photo document" />
                       </div>
                     )}
                     {(selectedUser.images_paths?.photo_capture || selectedUser.images_base64?.photo_capture) && (
                       <div className="dash-modal-img-wrap">
                         <label>Photo selfie</label>
-                        <img src={selectedUser.images_paths?.photo_capture ? `${API_BASE}${selectedUser.images_paths.photo_capture}` : selectedUser.images_base64.photo_capture} alt="Photo selfie" />
+                        <img src={getImageUrl(selectedUser.images_paths?.photo_capture || selectedUser.images_base64?.photo_capture)} alt="Photo selfie" />
                       </div>
                     )}
                     {(selectedUser.images_paths?.passeport || selectedUser.images_base64?.passeport) && (
                       <div className="dash-modal-img-wrap">
                         <label>Photo du passeport</label>
-                        <img src={selectedUser.images_paths?.passeport ? `${API_BASE}${selectedUser.images_paths.passeport}` : selectedUser.images_base64.passeport} alt="Photo passeport" />
+                        <img src={getImageUrl(selectedUser.images_paths?.passeport || selectedUser.images_base64?.passeport)} alt="Photo passeport" />
                       </div>
                     )}
                   </div>

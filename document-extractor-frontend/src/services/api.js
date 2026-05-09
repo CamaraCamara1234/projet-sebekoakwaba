@@ -11,6 +11,9 @@ export const getImageUrl = (url) => {
   if (url.startsWith('/media/')) {
     return `${API_BASE}${url}`;
   }
+  if (url.startsWith('media/')) {
+    return `${API_BASE}/${url}`;
+  }
   return url;
 };
 
