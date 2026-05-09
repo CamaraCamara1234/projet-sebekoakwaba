@@ -23,7 +23,7 @@ const Dashboard = () => {
     try {
       const response = await getDashboardData();
       setData(response.data || []);
-      console.log(response.data)
+      // console.log(response.data)
     } catch (err) {
       const msg = err.message || '';
       setError(msg);
