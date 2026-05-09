@@ -14,11 +14,12 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, re_path
 from extraction.views import extract_regions_view, extract_regions_dual_view, extraction_passport, data_validation
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.static import serve
 from facial_recognition.views import clear_media_dirs, verify_face_endpoint, finalisation_process, save_pending_identification, get_dashboard_data, create_admin_view, login_view, get_user_details, valid_statut, refresh_token_view
 
 urlpatterns = [
@@ -46,4 +47,7 @@ urlpatterns = [
     path('api/userDetails/<str:user_id>/', get_user_details, name='user_details_api'),
     path('api/validUserProfil/<str:user_id>/', valid_statut, name='valid_user_profil_api'),
 
-]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+] + [
+    # Servir les fichiers media en DEV et PROD (fonctionne même avec DEBUG=False)
+    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+]

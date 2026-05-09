@@ -25,6 +25,7 @@ from .services.utils import (
     decode_jwt_token, verify_jwt_token
 )
 import jwt
+from .services.utils import compress_session_images
 
 
 logger = logging.getLogger(__name__)
@@ -145,7 +146,6 @@ def finalisation_process(request):
 
         if user_id:
             try:
-                api_key = 'a7f3d2e9b1c84f6a2d5e8b3c7f1a4d9e2b6c8f3a1d7e4b2c9f5a3d8e1b6c4f7'
                 url = f'https://akwabasebeko.com/api/users/{user_id}/state'
                 
                 # Mapping : valide -> 1 (activé), en_cours -> 2 (en attente)
@@ -218,7 +218,7 @@ def save_pending_identification(request):
             session_id = data.get('session_id')
             if session_id:
                 try:
-                    from .services.utils import compress_session_images
+                    
                     compressed_paths = compress_session_images(session_id, data['images_paths'])
                     if compressed_paths:
                         data['images_paths'] = compressed_paths
