@@ -79,7 +79,7 @@ EXPOSE 8000
 
 # 🔥 PRODUCTION SERVER
 CMD ["gunicorn", "backend_api.wsgi:application", \
-     "--bind", "0.0.0.0:8000", \
-     "--workers", "2", \
-     "--threads", "2", \
-     "--timeout", "300"]
+    "--bind", "0.0.0.0:8000", \
+    "--workers", "2", \
+    "--threads", "2", \
+    "--timeout", "300"]

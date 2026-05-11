@@ -1,5 +1,5 @@
-export const API_BASE = 'https://checkid.akwabasebeko.com';
-// const API_BASE = 'https://jonna-unstrung-sickeningly.ngrok-free.dev';
+// export const API_BASE = 'https://checkid.akwabasebeko.com';
+const API_BASE = 'https://jonna-unstrung-sickeningly.ngrok-free.dev';
 // const API_BASE = 'http://127.0.0.1:8000';
 
 const SESSION_ID_KEY = 'secureid_session_id';
@@ -475,5 +475,14 @@ export const get_user_details = async (id) => {
  * Validation d'un profil utilisateur (authentifié)
  */
 export const valid_user_profil = async (id) => {
-  return authenticatedRequest(`/api/validUserProfil/${id}/`);
+  return authenticatedRequest(`/api/validUserProfil/${id}/`, { method: 'POST' });
+};
+
+/**
+ * Déclenche un backup complet (MongoDB + media/archives) vers Google Drive.
+ * Nécessite un token JWT admin valide.
+ * @returns {Promise<{success, backup_filename, drive_url, size_mb, timestamp}>}
+ */
+export const triggerBackup = async () => {
+  return authenticatedRequest('/api/backup/', { method: 'POST' });
 };

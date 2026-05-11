@@ -22,4 +22,5 @@ build/
 .vscode/
 .idea/
 
+credentials.json
 # document-extractor-frontend/

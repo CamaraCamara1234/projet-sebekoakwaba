@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getDashboardData, get_user_details, valid_user_profil, clearTokens, API_BASE, getImageUrl } from '../services/api';
+import { getDashboardData, get_user_details, valid_user_profil, clearTokens, API_BASE, getImageUrl, triggerBackup } from '../services/api';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -13,6 +13,8 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [validating, setValidating] = useState(false);
   const [activeTab, setActiveTab] = useState('en_cours');
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [backupResult, setBackupResult] = useState(null); // { success, drive_url, size_mb, backup_filename } | null
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -75,6 +77,20 @@ const Dashboard = () => {
   const handleLogout = () => {
     clearTokens();
     navigate('/login');
+  };
+
+  const handleBackup = async () => {
+    if (backupLoading) return;
+    setBackupLoading(true);
+    setBackupResult(null);
+    try {
+      const result = await triggerBackup();
+      setBackupResult({ success: true, ...result });
+    } catch (err) {
+      setBackupResult({ success: false, error: err.message || 'Erreur lors du backup' });
+    } finally {
+      setBackupLoading(false);
+    }
   };
 
   const filteredData = data.filter((item) => {
@@ -212,6 +228,31 @@ const Dashboard = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+
+            {/* ── Bouton Backup ── */}
+            <button
+              id="btn-backup-drive"
+              className={`dash-backup-btn ${backupLoading ? 'dash-backup-btn--loading' : ''}`}
+              onClick={handleBackup}
+              disabled={backupLoading}
+              title="Créer un backup et envoyer sur Google Drive"
+            >
+              {backupLoading ? (
+                <>
+                  <div className="dash-btn-spinner" />
+                  <span>Backup en cours...</span>
+                </>
+              ) : (
+                <>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="16 16 12 12 8 16" />
+                    <line x1="12" y1="12" x2="12" y2="21" />
+                    <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+                  </svg>
+                  <span>Backup Drive</span>
+                </>
+              )}
+            </button>
           </div>
         </header>
 
@@ -280,6 +321,50 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Backup Result Toast */}
+        {backupResult && (
+          <div className={`dash-backup-toast ${backupResult.success ? 'dash-backup-toast--success' : 'dash-backup-toast--error'}`}>
+            <div className="dash-backup-toast-icon">
+              {backupResult.success ? (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              )}
+            </div>
+            <div className="dash-backup-toast-body">
+              {backupResult.success ? (
+                <>
+                  <p className="dash-backup-toast-title">Backup réussi !</p>
+                  <p className="dash-backup-toast-sub">
+                    {backupResult.backup_filename} &bull; {backupResult.size_mb} MB
+                  </p>
+                  {backupResult.drive_url && (
+                    <a
+                      href={backupResult.drive_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="dash-backup-toast-link"
+                    >
+                      Ouvrir sur Google Drive →
+                    </a>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="dash-backup-toast-title">Backup échoué</p>
+                  <p className="dash-backup-toast-sub">{backupResult.error}</p>
+                </>
+              )}
+            </div>
+            <button className="dash-backup-toast-close" onClick={() => setBackupResult(null)}>&times;</button>
+          </div>
+        )}
 
         {/* Error Banner */}
         {error && (
