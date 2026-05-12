@@ -60,6 +60,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libsm6 \
     libxext6 \
     libxrender1 \
+    wget \
+    && wget -q https://fastdl.mongodb.org/tools/db/mongodb-database-tools-debian12-x86_64-100.10.0.deb -O /tmp/mongo-tools.deb \
+    && dpkg -i /tmp/mongo-tools.deb \
+    && rm /tmp/mongo-tools.deb \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

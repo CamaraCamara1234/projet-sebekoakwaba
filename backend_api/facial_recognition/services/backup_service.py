@@ -43,16 +43,35 @@ def _dump_mongodb(content_dir):
     mongo_dump_dir = os.path.join(content_dir, "mongo_dump")
     os.makedirs(mongo_dump_dir, exist_ok=True)
 
-    mongo_uri = getattr(settings, 'MONGO_URI', 'mongodb://localhost:27017/')
-    db_name = getattr(settings, 'MONGO_DB_NAME', 'akwabacheckid_db')
+    import urllib.parse
+    
+    mongo_uri = getattr(settings, 'MONGO_URI', 'mongodb://mongodb:27017/')
+    db_name   = getattr(settings, 'MONGO_DB_NAME', 'akwabacheckid_db')
+    username  = getattr(settings, 'MONGO_USERNAME', None)
+    password  = getattr(settings, 'MONGO_PASSWORD', None)
 
+    # Extraire host et port depuis l'URI de façon sécurisée (ignore les credentials s'ils sont présents dans l'URI)
+    parsed_uri = urllib.parse.urlparse(mongo_uri)
+    host = parsed_uri.hostname or 'mongodb'
+    port = parsed_uri.port or 27017
+
+    # Construction de la commande avec arguments séparés (évite les problèmes
+    # d'encodage de caractères spéciaux dans les mots de passe)
     cmd = [
         "mongodump",
-        "--uri={}".format(mongo_uri),
+        "--host={}".format(host),
+        "--port={}".format(port),
         "--db={}".format(db_name),
         "--out={}".format(mongo_dump_dir),
-        "--quiet"
+        "--quiet",
     ]
+
+    if username and password:
+        cmd += [
+            "--username={}".format(username),
+            "--password={}".format(password),
+            "--authenticationDatabase=admin",
+        ]
 
     logger.info("[Backup] Lancement mongodump -> {}".format(mongo_dump_dir))
     try:
@@ -114,21 +133,38 @@ def _compress_to_tar_gz(source_dir, output_path):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _get_drive_service():
-    """Authentifie via Service Account et retourne le service Drive API v3."""
-    try:
-    except ImportError:
-        raise RuntimeError(
-            "Bibliotheques Google Drive manquantes. "
-            "Installez-les avec : pip install google-api-python-client google-auth"
-        )
+    """Authentifie via OAuth2 (si configuré) ou Service Account, et retourne le service Drive API."""
+    
+    # 1. Tentative d'authentification par OAuth2 (Recommandé pour les comptes personnels)
+    refresh_token = getattr(settings, 'GOOGLE_DRIVE_REFRESH_TOKEN', os.getenv('GOOGLE_DRIVE_REFRESH_TOKEN'))
+    client_id = getattr(settings, 'GOOGLE_DRIVE_CLIENT_ID', os.getenv('GOOGLE_DRIVE_CLIENT_ID'))
+    client_secret = getattr(settings, 'GOOGLE_DRIVE_CLIENT_SECRET', os.getenv('GOOGLE_DRIVE_CLIENT_SECRET'))
+    
+    if refresh_token and client_id and client_secret:
+        try:
+            from google.oauth2.credentials import Credentials
+            creds = Credentials(
+                token=None,
+                refresh_token=refresh_token,
+                token_uri='https://oauth2.googleapis.com/token',
+                client_id=client_id,
+                client_secret=client_secret
+            )
+            service = build('drive', 'v3', credentials=creds)
+            logger.info("[Backup] Service Google Drive authentifie (OAuth2 Refresh Token).")
+            return service
+        except ImportError:
+            raise RuntimeError("Bibliotheques Google Drive manquantes.")
 
+    # 2. Fallback sur le Service Account (Ne fonctionne qu'avec Google Workspace / Shared Drives)
     credentials_path = getattr(settings, 'GOOGLE_DRIVE_CREDENTIALS_PATH', '')
     if not credentials_path or not os.path.exists(credentials_path):
         raise RuntimeError(
-            "Fichier credentials.json introuvable : '{}'. "
-            "Verifiez GOOGLE_DRIVE_CREDENTIALS_PATH dans vos settings.".format(credentials_path)
+            "Authentification Google Drive non configuree. Fournissez soit un Refresh Token (OAuth2), "
+            "soit un fichier credentials.json (Service Account)."
         )
 
+    from google.oauth2 import service_account
     SCOPES = ['https://www.googleapis.com/auth/drive']
     credentials = service_account.Credentials.from_service_account_file(
         credentials_path,
@@ -141,6 +177,13 @@ def _get_drive_service():
 
 def _get_or_create_drive_folder(service, folder_name):
     """Recherche ou crée un dossier sur Google Drive. Retourne l'ID du dossier."""
+    # 1. Utiliser un ID explicite s'il est configuré
+    folder_id_env = getattr(settings, 'GOOGLE_DRIVE_BACKUP_FOLDER_ID', None)
+    if folder_id_env:
+        logger.info("[Backup] Utilisation de l'ID de dossier Drive depuis la config : {}".format(folder_id_env))
+        return folder_id_env
+
+    # 2. Chercher par nom dans tous les drives (y compris les dossiers partagés avec le compte de service)
     query = (
         "name='{}' "
         "and mimeType='application/vnd.google-apps.folder' "
@@ -150,7 +193,9 @@ def _get_or_create_drive_folder(service, folder_name):
     results = service.files().list(
         q=query,
         spaces='drive',
-        fields='files(id, name)'
+        fields='files(id, name)',
+        includeItemsFromAllDrives=True,
+        supportsAllDrives=True
     ).execute()
 
     files = results.get('files', [])
@@ -159,11 +204,17 @@ def _get_or_create_drive_folder(service, folder_name):
         logger.info("[Backup] Dossier Drive trouve : '{}' (id={})".format(folder_name, folder_id))
         return folder_id
 
+    # 3. Création (risque d'échouer si le Service Account n'a pas de quota propre)
+    logger.warning("[Backup] Dossier non trouve. Tentative de creation (peut echouer sans quota).")
     folder_metadata = {
         'name': folder_name,
         'mimeType': 'application/vnd.google-apps.folder'
     }
-    folder = service.files().create(body=folder_metadata, fields='id').execute()
+    folder = service.files().create(
+        body=folder_metadata, 
+        fields='id',
+        supportsAllDrives=True
+    ).execute()
     folder_id = folder.get('id')
     logger.info("[Backup] Dossier Drive cree : '{}' (id={})".format(folder_name, folder_id))
     return folder_id
@@ -193,7 +244,8 @@ def _upload_file_to_drive(service, file_path, folder_id):
     uploaded_file = service.files().create(
         body=file_metadata,
         media_body=media,
-        fields='id, name, webViewLink, size'
+        fields='id, name, webViewLink, size',
+        supportsAllDrives=True
     ).execute()
 
     logger.info("[Backup] Upload termine : {}".format(uploaded_file.get('webViewLink')))

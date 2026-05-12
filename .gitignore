@@ -23,4 +23,5 @@ build/
 .idea/
 
 credentials.json
+client_secret.json
 # document-extractor-frontend/

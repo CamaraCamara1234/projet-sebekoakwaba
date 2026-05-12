@@ -36,3 +36,9 @@ albumentations
 tqdm
 requests
 python-dotenv
+
+# Google Drive API (backup service)
+google-api-python-client
+google-auth
+google-auth-httplib2
+google-auth-oauthlib

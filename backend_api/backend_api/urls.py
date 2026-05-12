@@ -20,7 +20,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.static import serve
-from facial_recognition.views import clear_media_dirs, verify_face_endpoint, finalisation_process, save_pending_identification, get_dashboard_data, create_admin_view, login_view, get_user_details, valid_statut, refresh_token_view
+from facial_recognition.views import clear_media_dirs, verify_face_endpoint, finalisation_process, save_pending_identification, get_dashboard_data, create_admin_view, login_view, get_user_details, valid_statut, refresh_token_view, create_backup_endpoint
 
 urlpatterns = [
     path('extraction/', csrf_exempt(extract_regions_view), name='extraction_api'),
@@ -46,6 +46,9 @@ urlpatterns = [
     path('api/create-admin/', create_admin_view, name='create_admin_api'),
     path('api/userDetails/<str:user_id>/', get_user_details, name='user_details_api'),
     path('api/validUserProfil/<str:user_id>/', valid_statut, name='valid_user_profil_api'),
+
+    # Backup → Google Drive (POST, JWT requis)
+    path('api/backup/', csrf_exempt(create_backup_endpoint), name='backup_api'),
 
 ] + [
     # Servir les fichiers media en DEV et PROD (fonctionne même avec DEBUG=False)

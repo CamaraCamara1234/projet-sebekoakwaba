@@ -213,6 +213,11 @@ MONGO_DB_NAME = os.getenv('MONGO_DB_NAME', 'akwabacheckid_db')
 MONGO_USERNAME = os.getenv('MONGO_INITDB_ROOT_USERNAME')
 MONGO_PASSWORD = os.getenv('MONGO_INITDB_ROOT_PASSWORD')
 
+# Google Drive API Configuration
+GOOGLE_DRIVE_CREDENTIALS_PATH = os.path.join(BASE_DIR.parent, os.getenv('GOOGLE_DRIVE_CREDENTIALS_PATH', 'credentials.json'))
+GOOGLE_DRIVE_BACKUP_FOLDER = os.getenv('GOOGLE_DRIVE_BACKUP_FOLDER', 'AkwabaCheckID_Backups')
+GOOGLE_DRIVE_BACKUP_FOLDER_ID = os.getenv('GOOGLE_DRIVE_BACKUP_FOLDER_ID', None)
+
 
 # Auth custom MongoDB - pas de DRF TokenAuthentication
 REST_FRAMEWORK = {

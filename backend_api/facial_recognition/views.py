@@ -521,5 +521,20 @@ def valid_statut(request, user_id):
             status=500
         )
 
+from .services.backup_service import create_backup_and_upload
 
+@csrf_exempt
+def create_backup_endpoint(request):
+    """
+    Endpoint protégé pour déclencher un backup complet et l'uploader sur Drive.
+    """
+    if not verify_mongo_token(request):
+        return JsonResponse({'error': 'Non autorisé. Token JWT invalide ou manquant.'}, status=401)
 
+    try:
+        result = create_backup_and_upload()
+        result['success'] = True
+        return JsonResponse(result, status=200)
+    except Exception as e:
+        logger.error(f"[Backup] Erreur lors du backup : {e}")
+        return JsonResponse({'error': f"Erreur lors du backup: {str(e)}"}, status=500)
