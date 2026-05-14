@@ -1,4 +1,4 @@
-export const API_BASE = 'https://checkid.akwabasebeko.com';
+export const API_BASE = process.env.REACT_APP_API_BASE || 'https://checkid.akwabasebeko.com';
 // const API_BASE = 'https://jonna-unstrung-sickeningly.ngrok-free.dev';
 // const API_BASE = 'http://127.0.0.1:8000';
 

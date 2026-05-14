@@ -14,8 +14,13 @@ import requests
 import jwt
 import bcrypt
 import datetime
+import re
 
 logger = logging.getLogger(__name__)
+
+def is_valid_uuid(val):
+    """Vérifie si la valeur est un UUID valide pour empêcher les failles Path Traversal."""
+    return bool(re.match(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', str(val).lower()))
 
 # ─── MongoDB Helpers ─────────────────────────────────────────────────────────
 
@@ -244,7 +249,7 @@ def compress_session_images(session_id, images_paths_dict):
     Compresse toutes les images associées à une session, 
     les place dans le dossier d'archivage et retourne les nouveaux chemins relatifs.
     """
-    if not session_id or not images_paths_dict:
+    if not session_id or not is_valid_uuid(session_id) or not images_paths_dict:
         return {}
         
     archive_dir = getattr(settings, 'IMAGES_ARCHIVE_DIR', os.path.join(settings.MEDIA_ROOT, 'archives'))
@@ -304,10 +309,10 @@ def clear_session_files(session_id):
     """
     Nettoie uniquement les fichiers d'une session spécifique
     """
-    if not session_id:
+    if not session_id or not is_valid_uuid(session_id):
         return JsonResponse({
             "status": "error",
-            "message": "Session ID requis"
+            "message": "Session ID invalide ou manquant"
         }, status=400)
 
     dirs_to_clear = ['preprocessed_imgs', 'extracted_regions', 'temp']

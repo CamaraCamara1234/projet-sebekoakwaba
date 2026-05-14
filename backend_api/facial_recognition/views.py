@@ -44,6 +44,10 @@ def verify_face_endpoint(request):
 
     if not session_id:
         return JsonResponse({'error': 'session_id requis'}, status=400)
+        
+    from .services.utils import is_valid_uuid
+    if not is_valid_uuid(session_id):
+        return JsonResponse({'error': 'Format session_id invalide'}, status=400)
 
     try:
 

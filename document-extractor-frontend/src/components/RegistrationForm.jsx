@@ -4,20 +4,74 @@ import * as ort from 'onnxruntime-web';
 import { preprocessImage, postprocessOutput } from '../utils/yolo-utils';
 
 ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.3/dist/';
-ort.env.wasm.numThreads = 1; // Mono-thread : plus stable sur Android
+ort.env.wasm.numThreads = 1; // Mono-thread : plus stable sur mobile
 
-// Détecter le type d'appareil une seule fois (hors composant)
+// ── Détection fine des capacités matérielles ──
 const IS_ANDROID = /Android/i.test(navigator.userAgent);
 const IS_MOBILE  = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-// Sur Android bas de gamme : 320x320 => ~4x plus rapide qu'à 640x640
-const MODEL_SIZE = IS_ANDROID ? 320 : 640;
-// Intervalle entre deux inférences (ms)
-const INFER_INTERVAL = IS_ANDROID ? 500 : 180;
+const RAM_GB     = navigator.deviceMemory || 4;
+const CPU_CORES  = navigator.hardwareConcurrency || 4;
+const IS_LOW_END = IS_MOBILE && (RAM_GB <= 2 || CPU_CORES <= 2);
+
+// Paramètres adaptatifs selon le profil matériel
+const MODEL_SIZE     = IS_LOW_END ? 256 : IS_ANDROID ? 320 : 640;
+const INFER_INTERVAL = IS_LOW_END ? 800 : IS_ANDROID ? 500 : 180;
+const CAM_WIDTH      = IS_LOW_END ? 640  : IS_ANDROID ? 1280 : 1920;
+const CAM_HEIGHT     = IS_LOW_END ? 480  : IS_ANDROID ? 720  : 1080;
+
+const MODEL_URL  = '/models/best.onnx';
+const CACHE_NAME = 'yolo-model-cache-v1';
 
 // Constantes pour l'auto-capture
 const REQUIRED_CONSECUTIVE_FRAMES = 5;
-const MIN_CONFIDENCE = 0.5;
+const MIN_CONFIDENCE = IS_LOW_END ? 0.40 : 0.50;
 const TARGET_WIDTH_RATIO = 0.45;
+
+// ── Téléchargement du modèle avec cache + progression ──
+async function fetchModelWithProgress(url, onProgress) {
+  let cache = null;
+  try {
+    cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(url);
+    if (cached) {
+      onProgress?.(100);
+      console.log('Modèle YOLO chargé depuis le cache navigateur.');
+      return await cached.arrayBuffer();
+    }
+  } catch (_) { /* Cache API indisponible */ }
+
+  const response = await fetch(url);
+  const contentLength = +(response.headers.get('Content-Length') || 0);
+
+  if (!response.body || !contentLength) {
+    const buffer = await response.arrayBuffer();
+    try { if (cache) await cache.put(url, new Response(buffer.slice(0))); } catch (_) {}
+    onProgress?.(100);
+    return buffer;
+  }
+
+  const reader = response.body.getReader();
+  const chunks = [];
+  let received = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    received += value.length;
+    onProgress?.(Math.round((received / contentLength) * 100));
+  }
+
+  const buffer = new Uint8Array(received);
+  let offset = 0;
+  for (const chunk of chunks) {
+    buffer.set(chunk, offset);
+    offset += chunk.length;
+  }
+
+  try { if (cache) await cache.put(url, new Response(buffer.buffer.slice(0))); } catch (_) {}
+  return buffer.buffer;
+}
 
 const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
   const [photo, setPhoto] = useState(null);
@@ -25,11 +79,11 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
   const [cameraError, setCameraError] = useState('');
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [isModelLoaded, setIsModelLoaded] = useState(false);
+  const [isModelLoading, setIsModelLoading] = useState(false);
+  const [modelLoadProgress, setModelLoadProgress] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusMessage, setStatusMessage] = useState('Veuillez cadrer votre document');
   const [progress, setProgress] = useState(0);
-  const [debugInfo, setDebugInfo] = useState('');
-  const [roiBox, setRoiBox] = useState(null);
 
   const webcamRef = useRef(null);
   const overlayCanvasRef = useRef(null);
@@ -37,40 +91,53 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
   const requestRef = useRef(null);
   const consecutiveValidFramesRef = useRef(0);
   const isCapturingRef = useRef(false);
+  const loadModelGuardRef = useRef(false);
 
-  // Configuration de la caméra (résolution réduite sur Android)
+  // ── Refs pour réduire les re-renders ──
+  const roiBoxRef = useRef(null);
+  const debugInfoRef = useRef(null);
+  const frameCanvasRef = useRef(null);
+
+  // Configuration de la caméra adaptative
   const getVideoConstraints = () => {
-    if (IS_ANDROID) {
-      return { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: { exact: 'environment' } };
-    }
-    if (IS_MOBILE) {
-      return { width: { ideal: 1920 }, height: { ideal: 1080 }, facingMode: { exact: 'environment' } };
-    }
-    return { width: { ideal: 1920 }, height: { ideal: 1080 }, facingMode: { ideal: 'environment' } };
+    const facingMode = IS_MOBILE ? { exact: 'environment' } : { ideal: 'environment' };
+    return { width: { ideal: CAM_WIDTH }, height: { ideal: CAM_HEIGHT }, facingMode };
   };
 
-  // Chargement du modèle
-  useEffect(() => {
-    const loadModel = async () => {
-      try {
-        const session = await ort.InferenceSession.create('/models/best.onnx', {
-          executionProviders: ['wasm'],
-        });
-        sessionRef.current = session;
-        setIsModelLoaded(true);
-        console.log(`Modèle YOLO chargé — input: ${MODEL_SIZE}x${MODEL_SIZE} — Android: ${IS_ANDROID}`);
-      } catch (e) {
-        console.error('Erreur lors du chargement du modèle:', e);
-        setCameraError("Erreur lors du chargement de l'IA de détection: " + e.message);
-      }
-    };
-    loadModel();
+  // ── Chargement différé du modèle (appelé au clic caméra) ──
+  const loadModel = useCallback(async () => {
+    if (sessionRef.current || loadModelGuardRef.current) return;
+    loadModelGuardRef.current = true;
 
-    // Nettoyage de la mémoire WASM lors du démontage du composant (transition vers Liveness)
+    setIsModelLoading(true);
+    setModelLoadProgress(0);
+    setCameraError('');
+
+    try {
+      const buffer = await fetchModelWithProgress(MODEL_URL, (pct) => {
+        setModelLoadProgress(pct);
+      });
+
+      const session = await ort.InferenceSession.create(buffer, {
+        executionProviders: ['wasm'],
+      });
+      sessionRef.current = session;
+      setIsModelLoaded(true);
+      console.log(`Modèle YOLO chargé — input: ${MODEL_SIZE}×${MODEL_SIZE} — Low-end: ${IS_LOW_END} — RAM: ${RAM_GB}GB — Cores: ${CPU_CORES}`);
+    } catch (e) {
+      console.error('Erreur lors du chargement du modèle:', e);
+      setCameraError("Erreur lors du chargement de l'IA de détection: " + e.message);
+      loadModelGuardRef.current = false;
+    } finally {
+      setIsModelLoading(false);
+    }
+  }, []);
+
+  // Nettoyage lors du démontage
+  useEffect(() => {
     return () => {
       if (sessionRef.current) {
         try {
-          // Libère la mémoire allouée au modèle ONNX
           sessionRef.current.release();
           sessionRef.current = null;
           console.log("Mémoire du modèle YOLO libérée avec succès.");
@@ -81,9 +148,9 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
     };
   }, []);
 
-  // Détection continue
+  // Détection continue — canvas réutilisé + mises à jour DOM directes
   const detectFrame = useCallback(async () => {
-    if (!webcamRef.current || !webcamRef.current.video || !sessionRef.current || isCapturingRef.current) {
+    if (!webcamRef.current?.video || !sessionRef.current || isCapturingRef.current) {
       requestRef.current = requestAnimationFrame(detectFrame);
       return;
     }
@@ -95,53 +162,65 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
     }
 
     try {
-      // 1. Canvas à la résolution originale de la vidéo
-      //    preprocessImage gère lui-même le letterbox vers MODEL_SIZE
-      //    → une seule chaîne de coordonnées, zéro bug de reprojection
-      const canvas = document.createElement('canvas');
+      // Canvas réutilisable (évite document.createElement à chaque frame)
+      if (!frameCanvasRef.current) {
+        frameCanvasRef.current = document.createElement('canvas');
+      }
+      const canvas = frameCanvasRef.current;
       canvas.width  = video.videoWidth;
       canvas.height = video.videoHeight;
       canvas.getContext('2d').drawImage(video, 0, 0);
 
-      // 2. Prétraitement + letterbox → MODEL_SIZE × MODEL_SIZE
       const { tensorData, scale, dx, dy } = preprocessImage(canvas, MODEL_SIZE, MODEL_SIZE);
       const tensor = new ort.Tensor('float32', tensorData, [1, 3, MODEL_SIZE, MODEL_SIZE]);
 
-      // 3. Inférence ONNX
       const inputName = sessionRef.current.inputNames[0];
       const results = await sessionRef.current.run({ [inputName]: tensor });
       const outputName = sessionRef.current.outputNames[0];
       const outputTensor = results[outputName];
 
-      // 4. Post-traitement (NMS)
       const boxes = postprocessOutput(outputTensor, MIN_CONFIDENCE);
 
-      // 5. Mettre à jour le debug et la ROI box
+      // ── Mises à jour DOM directes (zéro re-render React) ──
+      const roiEl = roiBoxRef.current;
+      const dbgEl = debugInfoRef.current;
+
       if (boxes.length > 0) {
-          const topBox = boxes[0];
-          if (consecutiveValidFramesRef.current % 2 === 0) {
-              setDebugInfo(`Détecté: ${topBox.className} (Id: ${topBox.classId}) à ${(topBox.confidence * 100).toFixed(0)}%`);
-          }
-          // Mettre à jour la ROI Box pour l'affichage
+        const topBox = boxes[0];
+
+        if (dbgEl && consecutiveValidFramesRef.current % 2 === 0) {
+          dbgEl.textContent = `Détecté: ${topBox.className} (Id: ${topBox.classId}) à ${(topBox.confidence * 100).toFixed(0)}%`;
+        }
+
+        if (roiEl && video.videoWidth > 0) {
           const x = (topBox.x - dx) / scale;
           const y = (topBox.y - dy) / scale;
           const w = topBox.w / scale;
           const h = topBox.h / scale;
-          setRoiBox({ x, y, w, h, label: `${topBox.className} ${(topBox.confidence * 100).toFixed(0)}%` });
+
+          roiEl.style.display = 'block';
+          roiEl.style.left   = `${(x / video.videoWidth) * 100}%`;
+          roiEl.style.top    = `${(y / video.videoHeight) * 100}%`;
+          roiEl.style.width  = `${(w / video.videoWidth) * 100}%`;
+          roiEl.style.height = `${(h / video.videoHeight) * 100}%`;
+
+          const labelEl = roiEl.querySelector('.roi-label');
+          if (labelEl) labelEl.textContent = `${topBox.className} ${(topBox.confidence * 100).toFixed(0)}%`;
+        }
       } else {
-          if (consecutiveValidFramesRef.current % 5 === 0) {
-              setDebugInfo(`Recherche de document...`);
-          }
-          setRoiBox(null);
+        if (dbgEl && consecutiveValidFramesRef.current % 5 === 0) {
+          dbgEl.textContent = 'Recherche de document...';
+        }
+        if (roiEl) roiEl.style.display = 'none';
       }
 
-      // 6. Analyser les conditions d'auto-capture
       checkAutoCaptureConditions(boxes, video.videoWidth, video.videoHeight, scale, dx, dy);
 
     } catch (e) {
       console.error('Erreur inférence:', e);
-      if (consecutiveValidFramesRef.current % 10 === 0) {
-          setDebugInfo(`Erreur inférence: ${e.message}`);
+      const dbgEl = debugInfoRef.current;
+      if (dbgEl && consecutiveValidFramesRef.current % 10 === 0) {
+        dbgEl.textContent = `Erreur inférence: ${e.message}`;
       }
     }
 
@@ -173,14 +252,12 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
       return;
     }
 
-    // Prendre la boîte avec la plus grande confiance
     const bestBox = boxes[0];
     const boxLeft   = (bestBox.x - dx) / scale;
     const boxTop    = (bestBox.y - dy) / scale;
     const boxRight  = (bestBox.x + bestBox.w - dx) / scale;
     const boxBottom = (bestBox.y + bestBox.h - dy) / scale;
 
-    // Marge minimale requise : 8% de chaque côté du cadre vidéo
     const MARGIN_X = vidW * 0.02;
     const MARGIN_Y = vidH * 0.02;
 
@@ -192,17 +269,14 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
 
     const isTooClose = (!hasLeftMargin && !hasRightMargin) || (!hasTopMargin && !hasBottomMargin);
 
-    // Vérifier la taille
     if (boxRight - boxLeft < vidW * TARGET_WIDTH_RATIO) {
       setStatusMessage('Caméra trop éloignée');
       consecutiveValidFramesRef.current = Math.max(0, consecutiveValidFramesRef.current - 1);
     } 
-    // Vérifier si trop proche
     else if (isTooClose) {
       setStatusMessage('Caméra trop proche');
       consecutiveValidFramesRef.current = Math.max(0, consecutiveValidFramesRef.current - 1);
     }
-    // Vérifier le cadrage (marges sur les 4 côtés)
     else if (!isCentered) {
       const hint = !hasLeftMargin ? 'vers la droite' : !hasRightMargin ? 'vers la gauche' :
                    !hasTopMargin  ? 'vers le bas'    : 'vers le haut';
@@ -218,7 +292,6 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
     setProgress(currentProgress);
 
     if (consecutiveValidFramesRef.current >= REQUIRED_CONSECUTIVE_FRAMES && !isCapturingRef.current) {
-      // SÉCURITÉ FINALE : vérifier une dernière fois les marges sur les 4 côtés
       if (!isCentered) {
         setStatusMessage('Cadrez correctement le document pour finaliser la capture');
         consecutiveValidFramesRef.current = Math.max(0, consecutiveValidFramesRef.current - 2);
@@ -238,14 +311,13 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
     setIsProcessing(true);
     setStatusMessage('Capture en cours... Ne bougez pas.');
     
-    // Retirer l'overlay
-    setRoiBox(null);
+    // Retirer l'overlay via DOM direct
+    if (roiBoxRef.current) roiBoxRef.current.style.display = 'none';
 
     try {
       const video = webcamRef.current.video;
       const canvas = document.createElement('canvas');
       
-      // Ajouter une marge de 5% autour de la ROI
       const marginX = roi.w * 0.02;
       const marginY = roi.h * 0.02;
       const x = Math.max(0, roi.x - marginX);
@@ -256,7 +328,6 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
       canvas.width = w;
       canvas.height = h;
       const ctx = canvas.getContext('2d');
-      // drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)
       ctx.drawImage(video, x, y, w, h, 0, 0, w, h);
 
       const blob = await new Promise((resolve) => {
@@ -294,10 +365,17 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
     setCameraError('Erreur d\'accès à la caméra.');
   };
 
-  const startCamera = () => {
-    setShowCamera(true);
+  // ── Ouverture caméra avec chargement différé du modèle ──
+  const startCamera = async () => {
     setCameraError('');
     setPhoto(null);
+
+    if (!sessionRef.current) {
+      await loadModel();
+      if (!sessionRef.current) return; // Échec du chargement
+    }
+
+    setShowCamera(true);
   };
 
   const stopCamera = () => {
@@ -308,7 +386,6 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
 
   const handleSubmit = () => {
     if (onSubmit && photo) {
-      // Compatibility with Home.jsx: onSubmit({ formData, files })
       onSubmit({ formData: {}, files: [photo.file] });
     }
   };
@@ -342,13 +419,24 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
                 <h3>Mode Scanner de Document</h3>
                 <ul>
                   <li>Assurez-vous que votre passeport est bien cadré.</li>
-                  <li>Assurez-vous qu’il y ait un bon éclairage.</li>
+                  <li>Assurez-vous qu'il y ait un bon éclairage.</li>
                   <li>Le système s'occupe de la mise au point.</li>
                   <li>La capture est 100% automatique.</li>
                 </ul>
-                <button onClick={startCamera} className="btn-primary" disabled={!isModelLoaded}>
-                  {isModelLoaded ? 'Ouvrir la caméra' : 'Chargement du modèle...'}
+                <button onClick={startCamera} className="btn-primary" disabled={isModelLoading}>
+                  {isModelLoading ? `Chargement du modèle... ${modelLoadProgress}%` : 'Ouvrir la caméra'}
                 </button>
+                {isModelLoading && (
+                  <div className="model-progress-container">
+                    <div className="model-progress-bar" style={{ width: `${modelLoadProgress}%` }}></div>
+                    <span className="model-progress-label">
+                      {modelLoadProgress < 100 ? 'Téléchargement du modèle IA...' : 'Initialisation...'}
+                    </span>
+                  </div>
+                )}
+                {IS_LOW_END && (
+                  <p className="device-hint">📱 Mode économie activé pour votre appareil</p>
+                )}
               </div>
             )}
             {cameraError && <div className="error-msg">{cameraError}</div>}
@@ -375,17 +463,10 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
                 className="overlay-canvas"
               />
               
-              {/* Affichage fluide de la ROI Box de l'IA */}
-              {roiBox && (
-                  <div className="roi-box" style={{
-                      left: `${(roiBox.x / webcamRef.current?.video?.videoWidth) * 100}%`,
-                      top: `${(roiBox.y / webcamRef.current?.video?.videoHeight) * 100}%`,
-                      width: `${(roiBox.w / webcamRef.current?.video?.videoWidth) * 100}%`,
-                      height: `${(roiBox.h / webcamRef.current?.video?.videoHeight) * 100}%`,
-                  }}>
-                      <div className="roi-label">{roiBox.label}</div>
-                  </div>
-              )}
+              {/* ROI Box — manipulé via ref (zéro re-render React) */}
+              <div ref={roiBoxRef} className="roi-box" style={{ display: 'none' }}>
+                <div className="roi-label"></div>
+              </div>
 
               {!isCameraReady && <div className="loading-overlay">Initialisation...</div>}
               {isProcessing && <div className="loading-overlay pulse">Capture Haute Définition...</div>}
@@ -396,7 +477,7 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
               <div className="progress-bar-container">
                 <div className="progress-bar" style={{ width: `${progress}%` }}></div>
               </div>
-              <div style={{color: 'lime', fontSize: '12px', marginTop: '10px', wordBreak: 'break-all'}}>{debugInfo}</div>
+              <div ref={debugInfoRef} style={{color: 'lime', fontSize: '12px', marginTop: '10px', wordBreak: 'break-all'}}></div>
             </div>
           </div>
         )}
@@ -452,6 +533,33 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
         .btn-secondary:disabled { border-color: #94a3b8; color: #94a3b8; cursor: not-allowed; }
         .actions { display: flex; flex-direction: column; gap: 1rem; width: 100%; align-items: center; }
 
+        .model-progress-container {
+          width: 100%;
+          max-width: 300px;
+          margin-top: 1rem;
+          position: relative;
+        }
+        .model-progress-bar {
+          height: 6px;
+          background: linear-gradient(90deg, #3b82f6, #10b981);
+          border-radius: 3px;
+          transition: width 0.2s ease;
+        }
+        .model-progress-label {
+          display: block;
+          margin-top: 0.5rem;
+          font-size: 0.8rem;
+          color: #64748b;
+        }
+        .device-hint {
+          margin-top: 1rem;
+          font-size: 0.8rem;
+          color: #94a3b8;
+          background: #f8fafc;
+          padding: 0.5rem 1rem;
+          border-radius: 20px;
+        }
+
         .camera-section {
           position: relative;
           background: #000;
@@ -467,7 +575,7 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
         .video-wrapper {
           position: relative;
           width: 100%;
-          height: 60vh; /* Espace caméra réduit */
+          height: 60vh;
           min-height: 400px;
           display: flex; justify-content: center; align-items: center;
           overflow: hidden;
@@ -481,7 +589,7 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
           border: 4px solid #10b981;
           border-radius: 8px;
           box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.65), 0 0 15px rgba(16, 185, 129, 0.5) inset;
-          transition: all 0.25s ease-out; /* Mouvement fluide */
+          transition: all 0.25s ease-out;
           pointer-events: none;
           z-index: 10;
         }
