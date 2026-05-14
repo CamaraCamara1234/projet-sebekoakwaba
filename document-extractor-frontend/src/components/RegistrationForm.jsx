@@ -1,9 +1,10 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import Webcam from 'react-webcam';
-import * as ort from 'onnxruntime-web';
+import * as ort from 'onnxruntime-web/wasm';
 import { preprocessImage, postprocessOutput } from '../utils/yolo-utils';
 
-ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.3/dist/';
+// Fichiers WASM servis localement (plus de dépendance CDN, fiable sur mobile)
+ort.env.wasm.wasmPaths = '/wasm/';
 ort.env.wasm.numThreads = 1; // Mono-thread : plus stable sur mobile
 
 // ── Détection fine des capacités matérielles ──
