@@ -65,15 +65,14 @@ export default function LivenessDetection({ onSuccess, onFailure }) {
   useEffect(() => {
     async function setupMediaPipe() {
       try {
-        // On utilise la version stable 0.10.3 pour éviter les régressions du CDN jsdelivr
         const vision = await FilesetResolver.forVisionTasks(
-          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm'
+          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
         );
         const faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
           baseOptions: {
             modelAssetPath:
               'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
-            // On NE met PAS de delegate. MediaPipe gèrera le CPU par défaut sans faire planter le WebGL.
+            delegate: 'CPU', // Forcé sur CPU car le GPU plante très souvent sur mobile
           },
           runningMode: 'VIDEO',
           numFaces: 1,
