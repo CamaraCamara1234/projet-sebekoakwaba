@@ -1,5 +1,5 @@
-export const API_BASE ='https://checkid.akwabasebeko.com';
-// const API_BASE = 'https://jonna-unstrung-sickeningly.ngrok-free.dev';
+// export const API_BASE ='https://checkid.akwabasebeko.com';
+const API_BASE = 'https://jonna-unstrung-sickeningly.ngrok-free.dev';
 // const API_BASE = 'http://127.0.0.1:8000';
 
 const SESSION_ID_KEY = 'secureid_session_id';
@@ -175,7 +175,6 @@ const getValidAccessToken = async () => {
   }
 
   // Sinon tenter un refresh
-  console.log('Access token expiré, tentative de refresh...');
   token = await refreshAccessToken();
   return token;
 };
@@ -289,7 +288,6 @@ const authenticatedRequest = async (endpoint, options = {}) => {
 
     // Si 401 → tenter un refresh et retry UNE FOIS
     if (response.status === 401) {
-      console.log('401 reçu, tentative de refresh...');
       const newToken = await refreshAccessToken();
 
       if (!newToken) {
@@ -450,9 +448,6 @@ export const loginUser = async (username, password) => {
 
   // Stocker les tokens JWT
   saveTokens(data.access_token, data.refresh_token);
-
-  // Legacy compat: stocker aussi sous l'ancien nom (au cas où)
-  localStorage.setItem('auth_token', data.access_token);
 
   return data;
 };

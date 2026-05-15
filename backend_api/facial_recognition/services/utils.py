@@ -22,26 +22,47 @@ def is_valid_uuid(val):
     """Vérifie si la valeur est un UUID valide pour empêcher les failles Path Traversal."""
     return bool(re.match(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', str(val).lower()))
 
-# ─── MongoDB Helpers ─────────────────────────────────────────────────────────
+# ─── MongoDB Singleton ───────────────────────────────────────────────────────
+
+_mongo_client = None  # Instance réutilisée pour la durée de vie du processus
+
+
+def get_mongo_client():
+    """
+    Retourne un client MongoDB singleton (réutilise la connexion existante).
+    Thread-safe pour les workers Gunicorn/Uvicorn car pymongo gère un pool interne.
+    """
+    global _mongo_client
+    if _mongo_client is None:
+        mongo_uri = getattr(settings, 'MONGO_URI', 'mongodb://localhost:27017/')
+        username = getattr(settings, 'MONGO_USERNAME', None)
+        password = getattr(settings, 'MONGO_PASSWORD', None)
+
+        if username and password:
+            _mongo_client = pymongo.MongoClient(
+                mongo_uri,
+                username=username,
+                password=password,
+                authSource='admin',
+                serverSelectionTimeoutMS=5000,
+                connectTimeoutMS=5000,
+            )
+        else:
+            _mongo_client = pymongo.MongoClient(
+                mongo_uri,
+                serverSelectionTimeoutMS=5000,
+                connectTimeoutMS=5000,
+            )
+        logger.info("Connexion MongoDB initialisée (singleton).")
+    return _mongo_client
+
 
 def get_mongo_db():
-    """Retourne la base de données MongoDB avec authentification si disponible."""
-    mongo_uri = getattr(settings, 'MONGO_URI', 'mongodb://localhost:27017/')
-    username = getattr(settings, 'MONGO_USERNAME', None)
-    password = getattr(settings, 'MONGO_PASSWORD', None)
+    """Retourne la base de données MongoDB (via client singleton)."""
+    client = get_mongo_client()
+    db_name = getattr(settings, 'MONGO_DB_NAME', 'akwabacheckid_db')
+    return client[db_name]
 
-    if username and password:
-        client = pymongo.MongoClient(
-            mongo_uri,
-            username=username,
-            password=password,
-            authSource='admin'
-        )
-    else:
-        client = pymongo.MongoClient(mongo_uri)
-
-    db = client[getattr(settings, 'MONGO_DB_NAME', 'akwabacheckid_db')]
-    return db
 
 
 # ─── Password Helpers (bcrypt) ───────────────────────────────────────────────

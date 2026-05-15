@@ -108,9 +108,9 @@ def verify_face_endpoint(request):
         })
 
     except Exception as e:
-
+        logger.error(f"Erreur verify_face_endpoint (session={session_id}): {str(e)}")
         return JsonResponse(
-            {'error': f'Erreur serveur : {str(e)}'},
+            {'error': 'Erreur interne du serveur. Veuillez réessayer.'},
             status=500
         )
     
@@ -125,7 +125,12 @@ def finalisation_process(request):
     try:
         # Données reçues via FormData
         data = request.POST
-        session_id = data.get('session_id', 'N/A')
+        session_id = data.get('session_id', '')
+
+        # ── Validation UUID obligatoire (H1 : empêche la pollution MongoDB) ──
+        from .services.utils import is_valid_uuid
+        if not session_id or not is_valid_uuid(session_id):
+            return JsonResponse({'error': 'session_id invalide ou manquant'}, status=400)
 
         response_data = {
             "date_expiration": data.get('date_expiration', ""),
@@ -175,23 +180,28 @@ def finalisation_process(request):
         return JsonResponse(response_data)
 
     except Exception as e:
-        logger.error(f"Erreur finalisation : {str(e)}")
+        logger.error(f"Erreur finalisation (session={data.get('session_id', 'N/A')}): {str(e)}")
         return JsonResponse({
-            'error': f'Erreur lors du traitement final : {str(e)}'
+            'error': 'Erreur lors du traitement final. Veuillez réessayer.'
         }, status=500)
 
 
 def clear_media_dirs(request):
+    """
+    Nettoie les fichiers d'une session. Accessible sans JWT (utilisateurs sans compte),
+    mais le session_id doit être un UUID valide (H3 : empêche la suppression arbitraire).
+    """
     # Récupérer session_id depuis les paramètres GET ou POST
     session_id = request.GET.get('session_id') or request.POST.get('session_id')
-    
-    # Si session_id est fourni, nettoyer uniquement cette session
-    if session_id:
-        return clear_session_files(session_id)
-    return JsonResponse({
-        "status": "error",
-        "message": "Session ID requis"
-    })
+
+    from .services.utils import is_valid_uuid
+    if not session_id or not is_valid_uuid(session_id):
+        return JsonResponse({
+            "status": "error",
+            "message": "Session ID invalide ou manquant"
+        }, status=400)
+
+    return clear_session_files(session_id)
     
 
 @csrf_exempt
@@ -203,8 +213,14 @@ def save_pending_identification(request):
         return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
 
     try:
-        data = request.POST.dict() 
+        data = request.POST.dict()
         statut_verification = data.get('statut_verification', "en_cours")
+
+        # ── Validation UUID obligatoire (H2 : empêche path traversal via compress_session_images) ──
+        from .services.utils import is_valid_uuid
+        session_id_check = data.get('session_id', '')
+        if not session_id_check or not is_valid_uuid(session_id_check):
+            return JsonResponse({'error': 'session_id invalide ou manquant'}, status=400)
         
         if statut_verification not in ["en_cours", "valide"]:
             return JsonResponse({'message': 'Ignoré, le statut n\'est pas pris en charge', 'saved': False})
@@ -249,8 +265,8 @@ def save_pending_identification(request):
         })
 
     except Exception as e:
-        logger.error(f"Erreur lors de la sauvegarde MongoDB : {str(e)}")
-        return JsonResponse({'error': f'Erreur lors de la sauvegarde : {str(e)}'}, status=500)
+        logger.error(f"Erreur lors de la sauvegarde MongoDB (session={data.get('session_id', 'N/A')}): {str(e)}")
+        return JsonResponse({'error': 'Erreur lors de la sauvegarde. Veuillez réessayer.'}, status=500)
 
 @csrf_exempt
 def get_dashboard_data(request):
@@ -359,7 +375,11 @@ def create_admin_view(request):
     """
     Crée un admin dans MongoDB avec bcrypt.
     POST { "username": "...", "password": "...", "email": "..." }
+    PROTÉGÉ : nécessite un token JWT admin valide (C4).
     """
+    # ── Protection JWT obligatoire : seul un admin existant peut créer un autre admin ──
+    if not verify_mongo_token(request):
+        return JsonResponse({'error': 'Non autorisé. Token JWT invalide ou manquant.'}, status=401)
     if request.method != 'POST':
         return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
 
@@ -399,7 +419,7 @@ def create_admin_view(request):
 
     except Exception as e:
         logger.error(f"Erreur création admin: {str(e)}")
-        return JsonResponse({'error': f'Erreur lors de la création : {str(e)}'}, status=500)
+        return JsonResponse({'error': 'Erreur lors de la création. Veuillez réessayer.'}, status=500)
 
 
 @csrf_exempt
@@ -519,9 +539,9 @@ def valid_statut(request, user_id):
         return JsonResponse({'data': users}, status=200)
 
     except Exception as e:
-        logger.error(f"User validation error: {str(e)}")
+        logger.error(f"User validation error (id={user_id}): {str(e)}")
         return JsonResponse(
-            {'error': f'Erreur lors de la validation du user : {str(e)}'},
+            {'error': 'Erreur lors de la validation. Veuillez réessayer.'},
             status=500
         )
 

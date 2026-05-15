@@ -28,10 +28,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-^(_3!0z=n(9i4$fz!^rtckm6g1v)zu_2q65m@)i0^823-^i31#')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() in ('true', '1', 't')
+# Par défaut False — mettre DJANGO_DEBUG=True uniquement en développement local
+DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() in ('true', '1', 't')
 
-# ALLOWED_HOSTS = ["checkid.akwabasebeko.com","127.0.0.1:8000"]
-ALLOWED_HOSTS = ["*"]
+# Restricter les hosts via env var (liste séparée par virgule)
+# Ex: ALLOWED_HOSTS=checkid.akwabasebeko.com,127.0.0.1
+_allowed_hosts_env = os.getenv('ALLOWED_HOSTS', 'checkid.akwabasebeko.com,127.0.0.1,localhost')
+ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts_env.split(',') if h.strip()]
 
 
 CORS_ALLOW_PRIVATE_NETWORK = True
@@ -187,8 +190,9 @@ CORS_ALLOW_HEADERS = [
     'ngrok-skip-browser-warning',
 ]
 
-# Pour le développement seulement :
-CORS_ALLOW_ALL_ORIGINS = True
+# IMPORTANT : CORS_ALLOW_ALL_ORIGINS est désactivé — utiliser uniquement CORS_ALLOWED_ORIGINS ci-dessus.
+# En développement local, ajoutez votre URL à CORS_ALLOWED_ORIGINS dans le .env ou ici.
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 
 # Augmenter la taille maximale des uploads (20 Mo)
@@ -229,7 +233,18 @@ API_KEY_AKWABA = os.getenv('API_KEY_AKWABA', 'a7f3d2e9b1c84f6a2d5e8b3c7f1a4d9e2b
 
 # ─── JWT Configuration ──────────────────────────────────────────────────────
 # En production, utilisez une variable d'environnement
-JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', SECRET_KEY + '_jwt_signing_key')
+# JWT_SECRET_KEY doit être une clé indépendante de SECRET_KEY.
+# Si non définie en env, une erreur est levée en production pour forcer sa configuration.
+_jwt_secret_env = os.getenv('JWT_SECRET_KEY')
+if not _jwt_secret_env:
+    if not DEBUG:
+        raise RuntimeError(
+            "ERREUR DE SÉCURITÉ : JWT_SECRET_KEY doit être définie en variable d'environnement en production. "
+            "Générez une clé forte et ajoutez-la à votre .env."
+        )
+    # En développement seulement : fallback sur une valeur dérivée
+    _jwt_secret_env = SECRET_KEY + '_jwt_signing_key_dev_only'
+JWT_SECRET_KEY = _jwt_secret_env
 JWT_ALGORITHM = 'HS256'
 JWT_ACCESS_TOKEN_LIFETIME_MINUTES = int(os.getenv('JWT_ACCESS_TOKEN_LIFETIME_MINUTES', 30))
 JWT_REFRESH_TOKEN_LIFETIME_DAYS = int(os.getenv('JWT_REFRESH_TOKEN_LIFETIME_DAYS', 7))
