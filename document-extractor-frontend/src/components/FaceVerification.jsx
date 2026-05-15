@@ -296,7 +296,7 @@ const FaceVerification = ({
 
           const pendingResult = {
             ...verificationResult,
-            session_id: localStorage.getItem("session_id"),
+            session_id: localStorage.getItem("secureid_session_id"),
             status: "en_cours",
             message: "Votre demande est en cours de validation. Nos services vous recontacteront.",
             captured_photo: capturedImage,
@@ -317,7 +317,7 @@ const FaceVerification = ({
           onVerificationComplete({
             ...verificationResult,
             status: "valide",
-            session_id: localStorage.getItem("session_id"),
+            session_id: localStorage.getItem("secureid_session_id"),
             captured_photo: capturedImage,
           });
         }

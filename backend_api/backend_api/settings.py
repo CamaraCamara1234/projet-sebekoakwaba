@@ -190,9 +190,9 @@ CORS_ALLOW_HEADERS = [
     'ngrok-skip-browser-warning',
 ]
 
-# IMPORTANT : CORS_ALLOW_ALL_ORIGINS est désactivé — utiliser uniquement CORS_ALLOWED_ORIGINS ci-dessus.
-# En développement local, ajoutez votre URL à CORS_ALLOWED_ORIGINS dans le .env ou ici.
-CORS_ALLOW_ALL_ORIGINS = False
+# IMPORTANT : En production, passez ceci à False et utilisez CORS_ALLOWED_ORIGINS.
+# Actuellement défini sur True pour permettre les tests sur mobile (qui ont une Origin locale différente, ex: 192.168.x.x)
+CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True').lower() in ('true', '1', 't')
 CORS_ALLOW_CREDENTIALS = True
 
 # Augmenter la taille maximale des uploads (20 Mo)
