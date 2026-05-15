@@ -33,7 +33,7 @@ DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() in ('true', '1', 't')
 
 # Restricter les hosts via env var (liste séparée par virgule)
 # Ex: ALLOWED_HOSTS=checkid.akwabasebeko.com,127.0.0.1
-_allowed_hosts_env = os.getenv('ALLOWED_HOSTS', 'checkid.akwabasebeko.com,127.0.0.1,localhost')
+_allowed_hosts_env = os.getenv('ALLOWED_HOSTS', 'checkid.akwabasebeko.com,127.0.0.1,localhost,jonna-unstrung-sickeningly.ngrok-free.dev')
 ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts_env.split(',') if h.strip()]
 
 
