@@ -65,17 +65,14 @@ export default function LivenessDetection({ onSuccess, onFailure }) {
   useEffect(() => {
     async function setupMediaPipe() {
       try {
-        // Fixation stricte de la version pour éviter les conflits d'API avec 'latest'
         const vision = await FilesetResolver.forVisionTasks(
-          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm'
+          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
         );
         const faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
           baseOptions: {
             modelAssetPath:
               'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
-            // Le delegate GPU cause beaucoup de plantages silencieux sur divers navigateurs/mobiles.
-            // On le supprime pour forcer le CPU (qui est très stable et rapide).
-            delegate: 'CPU',
+            delegate: 'GPU',
           },
           runningMode: 'VIDEO',
           numFaces: 1,
@@ -86,7 +83,7 @@ export default function LivenessDetection({ onSuccess, onFailure }) {
         startCamera();
       } catch (err) {
         console.error('Erreur chargement MediaPipe', err);
-        setInstruction(`Erreur de chargement: ${err.message || 'IA indisponible'}`);
+        setInstruction("Erreur de chargement de l'IA.");
       }
     }
     setupMediaPipe();
@@ -237,10 +234,10 @@ export default function LivenessDetection({ onSuccess, onFailure }) {
       // Marge de centrage légèrement assouplie
       const isCenteredX = Math.abs(nose.x - 0.5) < 0.20;
       const isCenteredY = Math.abs(nose.y - 0.5) < 0.25;
-      
+
       if (isCenteredX && isCenteredY) state.straightCounter++;
       else state.straightCounter = 0;
-      
+
       // Réduit de 20 à 10 pour une capture plus rapide (environ 0.5s au lieu de 1s)
       if (state.straightCounter >= 10) {
         capturePhoto();
