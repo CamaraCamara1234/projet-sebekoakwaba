@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import * as ort from 'onnxruntime-web/wasm';
+import { QRCodeSVG } from 'qrcode.react';
 import { preprocessImage, postprocessOutput } from '../utils/yolo-utils';
 
 // Fichiers WASM servis localement (plus de dépendance CDN, fiable sur mobile)
@@ -85,6 +86,11 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusMessage, setStatusMessage] = useState('Veuillez cadrer votre document');
   const [progress, setProgress] = useState(0);
+  const [currentUrl, setCurrentUrl] = useState('');
+
+  useEffect(() => {
+    setCurrentUrl(window.location.href);
+  }, []);
 
   const webcamRef = useRef(null);
   const overlayCanvasRef = useRef(null);
@@ -399,13 +405,28 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
       </div>
 
       <div className="capture-body">
-        {!showCamera ? (
+        {!IS_MOBILE ? (
+          <div className="desktop-qr-view">
+            <div className="icon">📱</div>
+            <h3>Vérification Mobile Requise</h3>
+            <p className="desktop-description">
+              Pour continuer le processus de vérification, veuillez scanner ce code QR avec votre téléphone portable.
+              La caméra de votre téléphone est requise pour une capture optimale et sécurisée.
+            </p>
+            <div className="qr-wrapper">
+              {currentUrl && <QRCodeSVG value={currentUrl} size={250} level="H" includeMargin={true} />}
+            </div>
+            {currentUrl && (
+              <p className="qr-url-hint">Ou ouvrez ce lien sur votre mobile :<br/><strong>{currentUrl}</strong></p>
+            )}
+          </div>
+        ) : !showCamera ? (
           <div className="preview-section">
             {photo ? (
               <div className="result-view">
                 <div className="photo-wrapper">
                   <img src={photo.preview} alt="Capture" />
-                  <div className="success-badge">✓ Qualité validée</div>
+                  <div className="success-badge">Assurez vous que le document est lisible</div>
                 </div>
                 <div className="actions">
                   <button onClick={startCamera} className="btn-secondary" disabled={isUploading}>Reprendre</button>
@@ -524,7 +545,7 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
         }
         .photo-wrapper img { max-width: 100%; display: block; }
         .success-badge {
-          position: absolute; bottom: 0; width: 100%; background: rgba(16,185,129,0.9);
+          position: absolute; bottom: 0; width: 100%; background: rgba(16, 179, 185, 0.9);
           color: white; padding: 0.5rem; font-weight: bold;
         }
 
@@ -620,6 +641,40 @@ const RegistrationForm = ({ onSubmit, initialData, isUploading }) => {
         .loading-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.7); color: white; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; }
         .pulse { animation: pulse 1s infinite alternate; }
         @keyframes pulse { from { opacity: 1; } to { opacity: 0.6; } }
+
+        .desktop-qr-view {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          padding: 2rem 1rem;
+        }
+        .desktop-description {
+          color: #475569;
+          margin-bottom: 2rem;
+          max-width: 500px;
+          line-height: 1.6;
+        }
+        .qr-wrapper {
+          background: white;
+          padding: 1rem;
+          border-radius: 16px;
+          border: 2px solid #e2e8f0;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+          margin-bottom: 1.5rem;
+          display: inline-block;
+        }
+        .qr-url-hint {
+          color: #64748b;
+          font-size: 0.9rem;
+          word-break: break-all;
+          max-width: 400px;
+        }
+        .qr-url-hint strong {
+          color: #3b82f6;
+          display: block;
+          margin-top: 0.5rem;
+        }
       `}</style>
     </div>
   );
